@@ -92,17 +92,17 @@ body{
   -webkit-user-select:none;
   -webkit-touch-callout:none;
   cursor:pointer;
-  transition:transform 0.1s;
+  transition:transform 0.2s cubic-bezier(0.18,0.89,0.32,1.28);
 }
 .bubble:active{transform:scale(0.98)}
 .reactions{position:absolute;bottom:-10px;right:10px;background:var(--panel);border:1px solid var(--bg);border-radius:12px;padding:2px 6px;font-size:12px;display:flex;gap:4px;z-index:10;box-shadow:0 2px 5px rgba(0,0,0,0.3)}
-.context-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
-.context-menu{background:var(--panel);padding:16px;border-radius:16px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;animation:pop 0.2s cubic-bezier(0.18,0.89,0.32,1.28)}
-@keyframes pop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
-.context-menu .emojis{display:flex;justify-content:space-between;font-size:28px;margin-bottom:8px;padding:0 8px}
+.context-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:3000;display:none;align-items:flex-end;justify-content:center}
+.context-menu{background:var(--panel);padding:24px 20px;border-top-left-radius:24px;border-top-right-radius:24px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:520px;animation:slideUp 0.3s cubic-bezier(0.18,0.89,0.32,1.28);padding-bottom:max(24px, env(safe-area-inset-bottom))}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.context-menu .emojis{display:flex;justify-content:space-between;font-size:32px;background:var(--bg);padding:12px 24px;border-radius:30px;margin-bottom:8px}
 .context-menu .emojis span{cursor:pointer;transition:transform 0.2s;line-height:1}
 .context-menu .emojis span:hover{transform:scale(1.2)}
-.context-btn{padding:14px;background:var(--bg);color:var(--text);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
+.context-btn{padding:16px;background:var(--bg);color:var(--text);border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;text-align:left;padding-left:24px}
 .context-btn.danger{color:#ef4444}
 .right{
   background:var(--right);
@@ -463,18 +463,114 @@ function render(msgs) {
       messages.scrollTop = messages.scrollHeight;
       }
 
-      /* LONG PRESS & CONTEXT MENU */
+      /* INSTAGRAM-STYLE GESTURES & CONTEXT MENU */
+      function triggerReply() {
+        text.value = `> Replying...\n`;
+        text.focus();
+        contextOverlay.style.display = "none";
+        if(navigator.vibrate) navigator.vibrate(50);
+      }
+
       function attachLongPress() {
         let pressTimer;
+        let lastTap = 0;
+  
         document.querySelectorAll('.bubble').forEach(b => {
+          let startX = 0, currentX = 0;
+    
           const startPress = (e) => {
             if(e.target.closest('.play') || e.target.closest('.progress')) return;
             isLongPress = false;
+            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            currentX = startX;
+      
             pressTimer = setTimeout(() => {
               isLongPress = true;
               openContextMenu(b.dataset.id, b.dataset.sender);
             }, 450);
           };
+    
+          const movePress = (e) => {
+            if (!startX) return;
+            currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const deltaX = currentX - startX;
+      
+            // Swipe right to reply
+            if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
+            if (deltaX > 0 && deltaX < 100) {
+              b.style.transform = `translateX(${deltaX}px)`;
+            }
+          };
+
+          const endPress = (e) => {
+            clearTimeout(pressTimer);
+            const deltaX = currentX - startX;
+            b.style.transform = ''; // snap back
+      
+            // Trigger Reply on Swipe
+            if (deltaX > 50) {
+              triggerReply();
+            }
+            startX = 0;
+      
+            // Double Tap to ❤️
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0 && !isLongPress) {
+              update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" });
+              if (navigator.vibrate) navigator.vibrate(50);
+              e.preventDefault();
+            }
+            lastTap = currentTime;
+          };
+    
+          b.addEventListener('mousedown', startPress);
+          b.addEventListener('mousemove', movePress);
+          b.addEventListener('mouseup', endPress);
+          b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
+    
+          b.addEventListener('touchstart', startPress, {passive: true});
+          b.addEventListener('touchmove', movePress, {passive: true});
+          b.addEventListener('touchend', endPress);
+    
+          b.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            isLongPress = true;
+            openContextMenu(b.dataset.id, b.dataset.sender);
+          });
+        });
+      }
+
+      function openContextMenu(msgId, sender) {
+        activeMessageId = msgId;
+        contextOverlay.style.display = "flex";
+        document.getElementById("contextDelete").style.display = (sender === role) ? "block" : "none";
+        if(navigator.vibrate) navigator.vibrate(50);
+      }
+
+      // Close menu when clicking the overlay (outside the menu)
+      contextOverlay.onclick = (e) => {
+        if (e.target === contextOverlay) contextOverlay.style.display = "none";
+      };
+
+      document.getElementById("contextCancel").onclick = () => contextOverlay.style.display = "none";
+
+      document.getElementById("contextEmojis").onclick = async (e) => {
+        if (e.target.tagName === 'SPAN') {
+          const emoji = e.target.dataset.emoji;
+          await update(ref(db, `rooms/${roomCode}/messages/${activeMessageId}/reactions`), { [role]: emoji });
+          contextOverlay.style.display = "none";
+        }
+      };
+
+      document.getElementById("contextDelete").onclick = async () => {
+        if(confirm("Delete this message?")) {
+          await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`));
+          contextOverlay.style.display = "none";
+        }
+      };
+
+      document.getElementById("contextReply").onclick = triggerReply;
           const cancelPress = () => clearTimeout(pressTimer);
     
           b.addEventListener('mousedown', startPress);
