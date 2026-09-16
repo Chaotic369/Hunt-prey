@@ -571,52 +571,6 @@ function render(msgs) {
       };
 
       document.getElementById("contextReply").onclick = triggerReply;
-          const cancelPress = () => clearTimeout(pressTimer);
-    
-          b.addEventListener('mousedown', startPress);
-          b.addEventListener('touchstart', startPress, {passive: true});
-          b.addEventListener('mouseup', cancelPress);
-          b.addEventListener('mouseleave', cancelPress);
-          b.addEventListener('touchend', cancelPress);
-          b.addEventListener('touchmove', cancelPress);
-    
-          b.addEventListener('contextmenu', e => {
-            e.preventDefault();
-            isLongPress = true;
-            openContextMenu(b.dataset.id, b.dataset.sender);
-          });
-        });
-      }
-
-      function openContextMenu(msgId, sender) {
-        activeMessageId = msgId;
-        contextOverlay.style.display = "flex";
-        document.getElementById("contextDelete").style.display = (sender === role) ? "block" : "none";
-        if(navigator.vibrate) navigator.vibrate(50);
-      }
-
-      document.getElementById("contextCancel").onclick = () => contextOverlay.style.display = "none";
-
-      document.getElementById("contextEmojis").onclick = async (e) => {
-        if (e.target.tagName === 'SPAN') {
-          const emoji = e.target.dataset.emoji;
-          await update(ref(db, `rooms/${roomCode}/messages/${activeMessageId}/reactions`), { [role]: emoji });
-          contextOverlay.style.display = "none";
-        }
-      };
-
-      document.getElementById("contextDelete").onclick = async () => {
-        if(confirm("Delete this message?")) {
-          await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`));
-          contextOverlay.style.display = "none";
-        }
-      };
-
-      document.getElementById("contextReply").onclick = () => {
-        text.value = `> Replying...\n`;
-        text.focus();
-        contextOverlay.style.display = "none";
-      };
 
       /* VOICE */
 function attachVoice() {
