@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hunter & Prey 💘</title>
+
+<style>
+/* ================= THEME VARIABLES ================= */
+:root{
+  --bg:#020617;
+  --panel:#0f172a;
+  --left:#1f2933;
+  --right:#2563eb;
+  --text:#e5e7eb;
+}
+
+/* ===== THEMES (10) ===== */
+.theme-0{--bg:#020617;--panel:#0f172a;--left:#1f2933;--right:#2563eb}
+.theme-1{--bg:#120308;--panel:#2a0f14;--left:#3a1418;--right:#dc2626}
+.theme-2{--bg:#02140c;--panel:#0f2a1e;--left:#143a2c;--right:#16a34a}
+.theme-3{--bg:#12021a;--panel:#24103a;--left:#2e1446;--right:#7c3aed}
+.theme-4{--bg:#000000;--panel:#050505;--left:#111111;--right:#ffffff}
+.theme-5{--bg:#0b1020;--panel:#1e293b;--left:#334155;--right:#38bdf8}
+.theme-6{--bg:#140c02;--panel:#2a1a0f;--left:#3a2414;--right:#f59e0b}
+.theme-7{--bg:#021013;--panel:#0f2a30;--left:#143a40;--right:#06b6d4}
+.theme-8{--bg:#101014;--panel:#1f1f2b;--left:#2a2a3a;--right:#a855f7}
+.theme-9{--bg:#fafafa;--panel:#e5e7eb;--left:#ffffff;--right:#2563eb;--text:#020617}
+
+/* ================= BASE ================= */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+  color:var(--text);
+  height:100dvh;
+}
+.app{
+  max-width:520px;
+  margin:auto;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* HEADER */
+.header{
+  padding:14px 16px;
+  border-bottom:1px solid var(--panel);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.header h1{font-size:16px;font-weight:700}
+.actions{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.action{
+  font-size:13px;
+  opacity:.7;
+  cursor:pointer;
+}
+.action:hover{opacity:1}
+
+/* STATUS */
+.status{
+  font-size:11px;
+  opacity:.5;
+  padding:0 4px;
+}
+.status.online{color:#16a34a;opacity:1}
+
+/* CHAT */
+.messages{
+  flex:1;
+  overflow-y:auto;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+}
+.bubble{
+  max-width:78%;
+  padding:12px 16px;
+  border-radius:20px;
+  margin-top:14px;
+}
+.right{
+  background:var(--right);
+  color:#fff;
+  margin-left:auto;
+  border-bottom-right-radius:6px;
+}
+.left{
+  background:var(--left);
+  margin-right:auto;
+  border-bottom-left-radius:6px;
+}
+.time{
+  font-size:10px;
+  opacity:.35;
+  margin-top:6px;
+}
+
+/* VOICE */
+.voice{display:flex;align-items:center;gap:10px}
+.play{
+  width:30px;height:30px;border-radius:50%;
+  background:#fff;color:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;cursor:pointer
+}
+.progress{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
+.bar{height:100%;width:0%;background:#fff}
+.duration{font-size:11px;opacity:.7;min-width:34px;text-align:right}
+
+/* MEDIA */
+.media{max-width:200px;border-radius:16px;overflow:hidden;cursor:pointer}
+.media img,.media video{width:100%;display:block}
+
+/* INPUT */
+.input{
+  padding:10px;
+  border-top:1px solid var(--panel);
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+textarea{
+  flex:1;
+  background:var(--panel);
+  border:none;
+  outline:none;
+  color:var(--text);
+  padding:12px 16px;
+  border-radius:22px;
+  resize:none;
+  font-family:inherit;
+}
+.icon{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--panel);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:20px;
+}
+.send{background:var(--right);color:#fff}
+
+/* VIEWER */
+.viewer{
+  position:fixed;inset:0;background:#000;
+  display:none;align-items:center;justify-content:center;
+  z-index:1000;
+}
+.viewer img,.viewer video{max-width:100%;max-height:100%}
+
+/* MODAL */
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;
+  z-index:2000;
+}
+.modal-content{
+  background:var(--panel);
+  padding:24px;
+  border-radius:16px;
+  max-width:400px;
+  width:90%;
+}
+.modal-content h2{margin-bottom:16px;font-size:18px}
+.modal-content input{
+  width:100%;
+  padding:12px 16px;
+  background:var(--bg);
+  border:1px solid var(--left);
+  border-radius:8px;
+  color:var(--text);
+  margin-bottom:12px;
+  font-size:14px;
+}
+.modal-content button{
+  width:100%;
+  padding:12px;
+  background:var(--right);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:600;
+}
+.modal-content button:hover{opacity:.9}
+.role-select{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+}
+.role-btn{
+  flex:1;
+  padding:16px;
+  background:var(--left);
+  border:2px solid transparent;
+  border-radius:12px;
+  cursor:pointer;
+  text-align:center;
+  font-size:14px;
+}
+.role-btn.active{
+  border-color:var(--right);
+  background:var(--right);
+}
+</style>
+</head>
+
+<body class="theme-0">
+<div class="app">
+
+<div class="header">
+  <h1>Hunter & Prey 💘</h1>
+  <div class="actions">
+    <span class="status" id="status">●</span>
+    <div class="action" id="theme">🎨</div>
+    <div class="action" id="clear">Clear</div>
+  </div>
+</div>
+
+<div class="messages" id="messages"></div>
+
+<div class="input">
+  <label class="icon">📎
+    <input type="file" hidden id="media" accept="image/*,video/*">
+  </label>
+  <textarea id="text" placeholder="here sweetheart…" rows="1"></textarea>
+  <div class="icon" id="mic">🎤</div>
+  <div class="icon send" id="send">💌</div>
+</div>
+
+<div class="viewer" id="viewer">
+  <span id="closeViewer" style="position:absolute;top:20px;right:20px;font-size:24px;cursor:pointer;color:#fff;">×</span>
+  <div id="viewerContent"></div>
+</div>
+
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal" id="setupModal">
+  <div class="modal-content">
+    <h2>🔥 Setup</h2>
+    <div class="role-select">
+      <div class="role-btn" data-role="hunter">🎯 Hunter</div>
+      <div class="role-btn" data-role="prey">💖 Prey</div>
+    </div>
+    <input type="text" id="roomCode" placeholder="Enter room code...">
+    <button id="joinBtn">Join Chat</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAau9fKT3kxa17lJb4g0QIqlhipJvWXPMw",
+  authDomain: "hunter-prey.firebaseapp.com",
+  databaseURL: "https://hunter-prey-default-rtdb.firebaseio.com",
+  projectId: "hunter-prey",
+  storageBucket: "hunter-prey.firebasestorage.app",
+  messagingSenderId: "533931279568",
+  appId: "1:533931279568:web:26dc7f86194ecfaa73cad5",
+  measurementId: "G-FMC7T9SC39"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const storage = getStorage(app);
+
+/* STATE */
+let role = localStorage.getItem("hp_role") || null;
+let roomCode = localStorage.getItem("hp_room") || null;
+let themeIndex = Number(localStorage.getItem("theme")) || 0;
+
+/* ELEMENTS */
+const messages = document.getElementById("messages");
+const text = document.getElementById("text");
+const send = document.getElementById("send");
+const media = document.getElementById("media");
+const mic = document.getElementById("mic");
+const viewer = document.getElementById("viewer");
+const viewerContent = document.getElementById("viewerContent");
+const closeViewer = document.getElementById("closeViewer");
+const setupModal = document.getElementById("setupModal");
+const roomCodeInput = document.getElementById("roomCode");
+const joinBtn = document.getElementById("joinBtn");
+const status = document.getElementById("status");
+
+/* SETUP */
+if (!role || !roomCode) {
+  setupModal.style.display = "flex";
+}
+
+document.querySelectorAll(".role-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    role = btn.dataset.role;
+  };
+});
+
+joinBtn.onclick = () => {
+  const code = roomCodeInput.value.trim();
+  if (!role || !code) {
+    alert("Please select a role and enter a room code");
+    return;
+  }
+  roomCode = code;
+  localStorage.setItem("hp_role", role);
+  localStorage.setItem("hp_room", roomCode);
+  setupModal.style.display = "none";
+  initChat();
+};
+
+/* THEME */
+applyTheme();
+function applyTheme() {
+  document.body.className = "theme-" + themeIndex;
+  localStorage.setItem("theme", themeIndex);
+}
+document.getElementById("theme").onclick = () => {
+  themeIndex = (themeIndex + 1) % 10;
+  applyTheme();
+};
+
+/* PRESENCE */
+function setupPresence() {
+  const presenceRef = ref(db, `rooms/${roomCode}/presence/${role}`);
+  set(presenceRef, { online: true, timestamp: Date.now() });
+  onDisconnect(presenceRef).remove();
+  
+  // Monitor other user's presence
+  const otherRole = role === "hunter" ? "prey" : "hunter";
+  onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
+    if (snapshot.exists()) {
+      status.textContent = "● online";
+      status.classList.add("online");
+    } else {
+      status.textContent = "● offline";
+      status.classList.remove("online");
+    }
+  });
+}
+
+/* CHAT INIT */
+function initChat() {
+  setupPresence();
+  
+  const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+  onValue(messagesRef, snapshot => {
+    const msgs = [];
+    snapshot.forEach(child => {
+      msgs.push({ id: child.key, ...child.val() });
+    });
+    render(msgs);
+  });
+}
+
+/* RENDER */
+function render(msgs) {
+  messages.innerHTML = "";
+  msgs.sort((a, b) => a.time - b.time);
+  
+  msgs.forEach((m, i) => {
+    const side = m.sender === role ? "right" : "left";
+    let content = "";
+    
+    if (m.type === "text") {
+      content = escapeHtml(m.text);
+    }
+    
+    if (m.type === "voice") {
+      content = `<div class="voice">
+        <div class="play" data-i="${i}">▶</div>
+        <div class="progress"><div class="bar" id="bar-${i}"></div></div>
+        <div class="duration">${format(m.duration)}</div>
+        <audio id="audio-${i}" src="${m.src}"></audio>
+      </div>`;
+    }
+    
+    if (m.type === "media") {
+      content = `<div class="media" data-i="${i}">
+        ${m.mediaType === "image" ? `<img src="${m.src}">` : `<video src="${m.src}" muted></video>`}
+      </div>`;
+    }
+    
+    messages.innerHTML += `
+      <div class="bubble ${side}">
+        ${content}
+        <div class="time">${new Date(m.time).toLocaleTimeString([], {
+          hour: "2-digit", minute: "2-digit"
+        })}</div>
+      </div>`;
+  });
+  
+  attachVoice();
+  attachMedia(msgs);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+/* VOICE */
+function attachVoice() {
+  document.querySelectorAll(".play").forEach(btn => {
+    const i = btn.dataset.i;
+    const audio = document.getElementById("audio-" + i);
+    const bar = document.getElementById("bar-" + i);
+    if (!audio) return;
+    
+    btn.onclick = () => {
+      if (audio.paused) {
+        audio.play();
+        btn.textContent = "⏸";
+      } else {
+        audio.pause();
+        btn.textContent = "▶";
+      }
+    };
+    audio.ontimeupdate = () => bar.style.width = (audio.currentTime / audio.duration * 100) + "%";
+    audio.onended = () => {
+      btn.textContent = "▶";
+      bar.style.width = "0%";
+    };
+  });
+}
+
+/* MEDIA */
+function attachMedia(msgs) {
+  document.querySelectorAll(".media").forEach(el => {
+    el.onclick = () => {
+      const m = msgs[el.dataset.i];
+      viewerContent.innerHTML = m.mediaType === "image"
+        ? `<img src="${m.src}">`
+        : `<video src="${m.src}" controls autoplay></video>`;
+      viewer.style.display = "flex";
+    };
+  });
+}
+
+closeViewer.onclick = () => viewer.style.display = "none";
+viewer.onclick = e => {
+  if (e.target === viewer) viewer.style.display = "none";
+};
+
+/* UTILS */
+function format(s) {
+  return "0:" + String(s).padStart(2, "0");
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/* SEND TEXT */
+send.onclick = async () => {
+  if (!text.value.trim()) return;
+  const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+  await push(messagesRef, {
+    type: "text",
+    text: text.value,
+    sender: role,
+    time: Date.now()
+  });
+  text.value = "";
+};
+
+text.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send.onclick();
+  }
+});
+
+/* SEND MEDIA */
+media.onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  
+  try {
+    const fileRef = storageRef(storage, `rooms/${roomCode}/${Date.now()}_${f.name}`);
+    await uploadBytes(fileRef, f);
+    const url = await getDownloadURL(fileRef);
+    
+    const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+    await push(messagesRef, {
+      type: "media",
+      src: url,
+      mediaType: f.type.startsWith("image") ? "image" : "video",
+      sender: role,
+      time: Date.now()
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    alert("Failed to upload media");
+  }
+  media.value = "";
+};
+
+/* VOICE RECORD */
+let recorder, chunks = [], recording = false, startTime;
+mic.onclick = async () => {
+  if (!recording) {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorder = new MediaRecorder(s);
+    chunks = [];
+    startTime = Date.now();
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.start();
+    recording = true;
+    mic.textContent = "🔴";
+  } else {
+    recorder.stop();
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      
+      try {
+        const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
+        await uploadBytes(fileRef, blob);
+        const url = await getDownloadURL(fileRef);
+        
+        const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+        await push(messagesRef, {
+          type: "voice",
+          src: url,
+          duration: Math.floor((Date.now() - startTime) / 1000),
+          sender: role,
+          time: Date.now()
+        });
+      } catch (error) {
+        console.error("Voice upload error:", error);
+        alert("Failed to upload voice message");
+      }
+      
+      recorder.stream.getTracks().forEach(t => t.stop());
+      recording = false;
+      mic.textContent = "🎤";
+    };
+  }
+};
+
+/* CLEAR */
+document.getElementById("clear").onclick = async () => {
+  if (confirm("Clear chat for everyone?")) {
+    const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+    await remove(messagesRef);
+  }
+};
+
+// Initialize if already logged in
+if (role && roomCode) {
+  initChat();
+}
+</script>
+</body>
+</html>
