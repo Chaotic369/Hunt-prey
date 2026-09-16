@@ -976,22 +976,33 @@ media.onchange = async e => {
 };
 
 /* VOICE RECORD */
-let recorder, chunks = [], recording = false, startTime;
-mic.onclick = async () => {
-  if (!recording) {
+let recorder, chunks = [], recording = false, startTime, micStartX = 0, recordingCancelled = false;
+
+const startVoice = async (e) => {
+  if (e.type === 'touchstart') e.preventDefault();
+  if (recording) return;
+  recordingCancelled = false;
+  micStartX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+  
+  try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
     recorder = new MediaRecorder(s);
     chunks = [];
     startTime = Date.now();
     recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.start();
-    recording = true;
-    mic.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="#ef4444"></circle></svg>`;
-  } else {
-    recorder.stop();
+    
     recorder.onstop = async () => {
-      const blob = new Blob(chunks, { type: "audio/webm" });
+      recorder.stream.getTracks().forEach(t => t.stop());
+      recording = false;
+      mic.style.transform = '';
+      mic.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
       
+      if (recordingCancelled) return;
+      
+      const duration = Math.floor((Date.now() - startTime) / 1000);
+      if (duration < 1) return; // Prevent accidental short taps
+      
+      const blob = new Blob(chunks, { type: "audio/webm" });
       try {
         const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
         await uploadBytes(fileRef, blob);
@@ -1001,7 +1012,7 @@ mic.onclick = async () => {
         await push(messagesRef, {
           type: "voice",
           src: url,
-          duration: Math.floor((Date.now() - startTime) / 1000),
+          duration: duration,
           sender: role,
           time: Date.now()
         });
@@ -1009,13 +1020,45 @@ mic.onclick = async () => {
         console.error("Voice upload error:", error);
         alert("Failed to upload voice message");
       }
-      
-      recorder.stream.getTracks().forEach(t => t.stop());
-      recording = false;
-      mic.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
     };
+
+    recorder.start();
+    recording = true;
+    mic.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="#ef4444"></circle></svg>`;
+  } catch (err) {
+    console.error("Mic access denied", err);
   }
 };
+
+const moveVoice = (e) => {
+  if (!recording || recordingCancelled) return;
+  const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+  const deltaX = currentX - micStartX;
+  
+  if (Math.abs(deltaX) > 5) {
+    mic.style.transform = `translateX(${deltaX}px)`;
+  }
+  
+  // Slide left or right to cancel
+  if (Math.abs(deltaX) > 60) {
+    recordingCancelled = true;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    if (navigator.vibrate) navigator.vibrate(50);
+    mic.style.transform = '';
+  }
+};
+
+const stopVoice = (e) => {
+  if (!recording || recordingCancelled) return;
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+};
+
+mic.addEventListener('mousedown', startVoice);
+mic.addEventListener('touchstart', startVoice, {passive: false});
+document.addEventListener('mousemove', moveVoice);
+document.addEventListener('touchmove', moveVoice, {passive: false});
+document.addEventListener('mouseup', stopVoice);
+document.addEventListener('touchend', stopVoice);
 
 /* CLEAR */
 document.getElementById("clear").onclick = async () => {
