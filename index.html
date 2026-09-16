@@ -34,13 +34,15 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
   color:var(--text);
   height:100dvh;
+  overflow:hidden;
 }
 .app{
   max-width:520px;
-  margin:auto;
+  margin:0 auto;
   height:100dvh;
   display:flex;
   flex-direction:column;
+  overflow:hidden;
 }
 
 /* HEADER */
@@ -368,7 +370,7 @@ function initChat() {
 
 /* RENDER */
 function render(msgs) {
-  messages.innerHTML = "";
+  let html = "";
   msgs.sort((a, b) => a.time - b.time);
   
   msgs.forEach((m, i) => {
@@ -394,7 +396,7 @@ function render(msgs) {
       </div>`;
     }
     
-    messages.innerHTML += `
+    html += `
       <div class="bubble ${side}">
         ${content}
         <div class="time">${new Date(m.time).toLocaleTimeString([], {
@@ -403,6 +405,7 @@ function render(msgs) {
       </div>`;
   });
   
+  messages.innerHTML = html;
   attachVoice();
   attachMedia(msgs);
   messages.scrollTop = messages.scrollHeight;
