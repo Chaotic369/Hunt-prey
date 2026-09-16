@@ -221,6 +221,7 @@ textarea{
 <div class="header">
   <h1>Hunter & Prey 💘</h1>
   <div class="actions">
+    <span class="status" id="typingIndicator" style="display:none; color:var(--right); font-weight:bold; font-style:italic;">typing...</span>
     <span class="status" id="status">●</span>
     <div class="action" id="theme">🎨</div>
     <div class="action" id="clear">Clear</div>
@@ -297,6 +298,7 @@ const setupModal = document.getElementById("setupModal");
 const roomCodeInput = document.getElementById("roomCode");
 const joinBtn = document.getElementById("joinBtn");
 const status = document.getElementById("status");
+const typingIndicator = document.getElementById("typingIndicator");
 
 /* SETUP */
 if (!role || !roomCode) {
@@ -342,17 +344,22 @@ function setupPresence() {
   onDisconnect(presenceRef).remove();
   
   // Monitor other user's presence
-  const otherRole = role === "hunter" ? "prey" : "hunter";
-  onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
-    if (snapshot.exists()) {
-      status.textContent = "● online";
-      status.classList.add("online");
-    } else {
-      status.textContent = "● offline";
-      status.classList.remove("online");
-    }
-  });
-}
+    const otherRole = role === "hunter" ? "prey" : "hunter";
+    onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
+      if (snapshot.exists()) {
+        status.textContent = "● online";
+        status.classList.add("online");
+      } else {
+        status.textContent = "● offline";
+        status.classList.remove("online");
+      }
+    });
+  
+    // Monitor other user's typing status
+    onValue(ref(db, `rooms/${roomCode}/typing/${otherRole}`), snapshot => {
+      typingIndicator.style.display = snapshot.val() ? "inline" : "none";
+    });
+  }
 
 /* CHAT INIT */
 function initChat() {
@@ -476,7 +483,20 @@ send.onclick = async () => {
     time: Date.now()
   });
   text.value = "";
+  set(ref(db, `rooms/${roomCode}/typing/${role}`), false).catch(console.error);
 };
+
+let typingTimeout;
+text.addEventListener('input', () => {
+  if (!role || !roomCode) return;
+  const typingRef = ref(db, `rooms/${roomCode}/typing/${role}`);
+  set(typingRef, true).catch(console.error);
+  
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    set(typingRef, false).catch(console.error);
+  }, 1500);
+});
 
 text.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
