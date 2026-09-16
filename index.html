@@ -40,7 +40,7 @@ body{
   max-width:520px;
   margin:0 auto;
   height:100dvh;
-  display:flex;
+  display:none;
   flex-direction:column;
   overflow:hidden;
 }
@@ -171,7 +171,7 @@ body{
   z-index:5;
 }
 
-/* INSTAGRAM STYLE CONTEXT OVERLAY & BOTTOM SHEET */
+/* INSTAGRAM STYLE CONTEXT OVERLAY & POPUP */
 .context-overlay{
   position:fixed;
   inset:0;
@@ -180,29 +180,28 @@ body{
   -webkit-backdrop-filter:blur(6px);
   z-index:3000;
   display:none;
-  align-items:flex-end;
-  justify-content:center;
 }
 .context-menu{
-  width:100%;
-  max-width:480px;
+  position:absolute;
+  width:240px;
   display:flex;
   flex-direction:column;
-  align-items:center;
   gap:12px;
-  padding:16px;
-  animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1);
-  padding-bottom:max(20px, env(safe-area-inset-bottom));
+  padding:12px;
+  background:var(--panel);
+  border-radius:20px;
+  animation:pop 0.2s cubic-bezier(0.18,0.89,0.32,1.28);
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);
 }
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes pop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
 .ig-reaction-capsule{
   background:#262626;
   border-radius:32px;
-  padding:8px 18px;
+  padding:10px 14px;
   display:flex;
-  gap:14px;
-  font-size:26px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.5);
+  justify-content:space-between;
+  font-size:22px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
 }
 .ig-reaction-capsule span{
   cursor:pointer;
@@ -496,7 +495,7 @@ const storage = getStorage(app);
 
 /* STATE */
 let role = localStorage.getItem("hp_role") || null;
-let roomCode = localStorage.getItem("hp_room") || null;
+let roomCode = null; // Forces you to type it every time
 let themeIndex = Number(localStorage.getItem("theme")) || 0;
 
 /* ELEMENTS */
@@ -527,11 +526,11 @@ let editingMessageId = null;
 let allMsgs = [];
 
 /* SETUP */
-if (!role || !roomCode) {
-  setupModal.style.display = "flex";
-}
+setupModal.style.display = "flex"; // Always show modal initially
 
 document.querySelectorAll(".role-btn").forEach(btn => {
+  if (role && btn.dataset.role === role) btn.classList.add("active");
+  
   btn.onclick = () => {
     document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
@@ -547,8 +546,8 @@ joinBtn.onclick = () => {
   }
   roomCode = code;
   localStorage.setItem("hp_role", role);
-  localStorage.setItem("hp_room", roomCode);
   setupModal.style.display = "none";
+  document.querySelector('.app').style.display = "flex";
   initChat();
 };
 
@@ -710,67 +709,77 @@ function attachLongPress() {
     let startX = 0, currentX = 0;
     
     const startPress = (e) => {
-      if (e.target.closest('.play') || e.target.closest('.progress')) return;
-      isLongPress = false;
-      startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-      currentX = startX;
+          if (e.target.closest('.play') || e.target.closest('.progress')) return;
+          isLongPress = false;
+          const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+          const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+          startX = clientX;
+          currentX = startX;
       
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        openContextMenu(b.dataset.id, b.dataset.sender);
-      }, 450);
-    };
+          pressTimer = setTimeout(() => {
+            isLongPress = true;
+            openContextMenu(b.dataset.id, b.dataset.sender, clientX, clientY);
+          }, 450);
+        };
     
-    const movePress = (e) => {
-      if (!startX) return;
-      currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-      const deltaX = currentX - startX;
-      if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
-      if (deltaX > 0 && deltaX < 80) {
-        b.style.transform = `translateX(${deltaX}px)`;
-      }
-    };
+        const movePress = (e) => {
+          if (!startX) return;
+          currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+          const deltaX = currentX - startX;
+          if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
+          if (deltaX > 0 && deltaX < 80) {
+            b.style.transform = `translateX(${deltaX}px)`;
+          }
+        };
 
-    const endPress = (e) => {
-      clearTimeout(pressTimer);
-      const deltaX = currentX - startX;
-      b.style.transform = '';
+        const endPress = (e) => {
+          clearTimeout(pressTimer);
+          const deltaX = currentX - startX;
+          b.style.transform = '';
       
-      if (deltaX > 45) {
-        const msg = allMsgs.find(m => m.id === b.dataset.id);
-        if (msg) setReplyTarget(msg);
-      }
-      startX = 0;
+          if (deltaX > 45) {
+            const msg = allMsgs.find(m => m.id === b.dataset.id);
+            if (msg) setReplyTarget(msg);
+          }
+          startX = 0;
       
-      // Double tap to heart
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTap;
-      if (tapLength < 300 && tapLength > 0 && !isLongPress) {
-        update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
-        if (navigator.vibrate) navigator.vibrate(50);
-        e.preventDefault();
-      }
-      lastTap = currentTime;
-    };
+          // Double tap to heart (Toggle Like)
+          const currentTime = new Date().getTime();
+          const tapLength = currentTime - lastTap;
+          if (tapLength < 300 && tapLength > 0 && !isLongPress) {
+            const msg = allMsgs.find(m => m.id === b.dataset.id);
+            if (msg) {
+              const hasHeart = msg.reactions && msg.reactions[role] === "❤️";
+              if (hasHeart) {
+                remove(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions/${role}`)).catch(console.error);
+              } else {
+                update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+              }
+              if (navigator.vibrate) navigator.vibrate(50);
+            }
+            e.preventDefault();
+          }
+          lastTap = currentTime;
+        };
     
-    b.addEventListener('mousedown', startPress);
-    b.addEventListener('mousemove', movePress);
-    b.addEventListener('mouseup', endPress);
-    b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
+        b.addEventListener('mousedown', startPress);
+        b.addEventListener('mousemove', movePress);
+        b.addEventListener('mouseup', endPress);
+        b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
     
-    b.addEventListener('touchstart', startPress, {passive: true});
-    b.addEventListener('touchmove', movePress, {passive: true});
-    b.addEventListener('touchend', endPress);
+        b.addEventListener('touchstart', startPress, {passive: true});
+        b.addEventListener('touchmove', movePress, {passive: true});
+        b.addEventListener('touchend', endPress);
     
-    b.addEventListener('contextmenu', e => {
-      e.preventDefault();
-      isLongPress = true;
-      openContextMenu(b.dataset.id, b.dataset.sender);
-    });
+        b.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          isLongPress = true;
+          openContextMenu(b.dataset.id, b.dataset.sender, e.clientX, e.clientY);
+        });
   });
 }
 
-function openContextMenu(msgId, sender) {
+function openContextMenu(msgId, sender, x, y) {
   activeMessageId = msgId;
   const msg = allMsgs.find(m => m.id === msgId);
   const isMine = sender === role;
@@ -778,7 +787,22 @@ function openContextMenu(msgId, sender) {
   document.getElementById("contextUnsend").style.display = isMine ? "flex" : "none";
   document.getElementById("contextEdit").style.display = (isMine && msg && msg.type === "text") ? "flex" : "none";
   
-  contextOverlay.style.display = "flex";
+  contextOverlay.style.display = "block";
+  const menu = document.querySelector('.context-menu');
+  
+  requestAnimationFrame(() => {
+    const rect = menu.getBoundingClientRect();
+    let top = y - rect.height - 20;
+    if (top < 20) top = y + 20; // Flip below if off-screen top
+    
+    let left = x - (rect.width / 2);
+    if (left < 10) left = 10;
+    if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
+    
+    menu.style.top = top + "px";
+    menu.style.left = left + "px";
+  });
+  
   if (navigator.vibrate) navigator.vibrate(50);
 }
 
@@ -1000,11 +1024,6 @@ document.getElementById("clear").onclick = async () => {
     await remove(messagesRef);
   }
 };
-
-// Initialize if already logged in
-if (role && roomCode) {
-  initChat();
-}
 </script>
 </body>
 </html>
