@@ -47,32 +47,60 @@ body{
 
 /* HEADER */
 .header{
-  padding:14px 16px;
-  border-bottom:1px solid var(--panel);
+  padding:10px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
   display:flex;
   justify-content:space-between;
   align-items:center;
+  background:var(--bg);
 }
-.header h1{font-size:16px;font-weight:700}
+.ig-user-info{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.ig-avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:var(--panel);
+  border:2px solid var(--right);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+.ig-meta{
+  display:flex;
+  flex-direction:column;
+}
+.ig-meta h1{
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:-0.2px;
+}
+.ig-substatus{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.status{
+  font-size:11px;
+  opacity:.6;
+}
+.status.online{color:#10b981;opacity:1}
+.status.typing-text{color:var(--right);font-weight:600;font-style:italic}
 .actions{
   display:flex;
-  gap:12px;
+  gap:16px;
   align-items:center;
 }
 .action{
-  font-size:13px;
-  opacity:.7;
+  font-size:18px;
   cursor:pointer;
+  transition:transform 0.15s ease;
 }
-.action:hover{opacity:1}
-
-/* STATUS */
-.status{
-  font-size:11px;
-  opacity:.5;
-  padding:0 4px;
-}
-.status.online{color:#16a34a;opacity:1}
+.action:active{transform:scale(0.9)}
 
 /* CHAT */
 .messages{
@@ -81,45 +109,167 @@ body{
   padding:16px;
   display:flex;
   flex-direction:column;
+  gap:6px;
 }
 .bubble{
-  max-width:78%;
-  padding:12px 16px;
-  border-radius:20px;
-  margin-top:14px;
+  max-width:76%;
+  padding:10px 15px;
+  border-radius:18px;
   position:relative;
   user-select:none;
   -webkit-user-select:none;
   -webkit-touch-callout:none;
   cursor:pointer;
+  word-break:break-word;
   transition:transform 0.2s cubic-bezier(0.18,0.89,0.32,1.28);
 }
 .bubble:active{transform:scale(0.98)}
-.reactions{position:absolute;bottom:-10px;right:10px;background:var(--panel);border:1px solid var(--bg);border-radius:12px;padding:2px 6px;font-size:12px;display:flex;gap:4px;z-index:10;box-shadow:0 2px 5px rgba(0,0,0,0.3)}
-.context-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:3000;display:none;align-items:flex-end;justify-content:center}
-.context-menu{background:var(--panel);padding:24px 20px;border-top-left-radius:24px;border-top-right-radius:24px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:520px;animation:slideUp 0.3s cubic-bezier(0.18,0.89,0.32,1.28);padding-bottom:max(24px, env(safe-area-inset-bottom))}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.context-menu .emojis{display:flex;justify-content:space-between;font-size:32px;background:var(--bg);padding:12px 24px;border-radius:30px;margin-bottom:8px}
-.context-menu .emojis span{cursor:pointer;transition:transform 0.2s;line-height:1}
-.context-menu .emojis span:hover{transform:scale(1.2)}
-.context-btn{padding:16px;background:var(--bg);color:var(--text);border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;text-align:left;padding-left:24px}
-.context-btn.danger{color:#ef4444}
 .right{
   background:var(--right);
   color:#fff;
   margin-left:auto;
-  border-bottom-right-radius:6px;
+  border-bottom-right-radius:4px;
 }
 .left{
   background:var(--left);
+  color:var(--text);
   margin-right:auto;
-  border-bottom-left-radius:6px;
+  border-bottom-left-radius:4px;
+}
+.bubble-reply-ref{
+  background:rgba(0,0,0,0.22);
+  border-left:3px solid #fff;
+  border-radius:4px;
+  padding:4px 8px;
+  margin-bottom:6px;
+  font-size:11px;
+  opacity:0.9;
+}
+.bubble-reply-ref .reply-user{
+  font-weight:700;
+  font-size:10px;
 }
 .time{
-  font-size:10px;
-  opacity:.35;
-  margin-top:6px;
+  font-size:9px;
+  opacity:.45;
+  margin-top:4px;
+  text-align:right;
 }
+.reactions{
+  position:absolute;
+  bottom:-8px;
+  right:8px;
+  background:var(--panel);
+  border:2px solid var(--bg);
+  border-radius:12px;
+  padding:1px 5px;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  z-index:5;
+}
+
+/* INSTAGRAM STYLE CONTEXT OVERLAY & BOTTOM SHEET */
+.context-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  z-index:3000;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+}
+.context-menu{
+  width:100%;
+  max-width:480px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  padding:16px;
+  animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+  padding-bottom:max(20px, env(safe-area-inset-bottom));
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ig-reaction-capsule{
+  background:#262626;
+  border-radius:32px;
+  padding:8px 18px;
+  display:flex;
+  gap:14px;
+  font-size:26px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.5);
+}
+.ig-reaction-capsule span{
+  cursor:pointer;
+  transition:transform 0.15s cubic-bezier(0.18,0.89,0.32,1.28);
+  line-height:1;
+}
+.ig-reaction-capsule span:active{transform:scale(1.4)}
+.ig-action-sheet{
+  width:100%;
+  background:#262626;
+  border-radius:18px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.ig-action-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 20px;
+  background:transparent;
+  border:none;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  color:#fff;
+  font-size:15px;
+  font-weight:500;
+  cursor:pointer;
+}
+.ig-action-item:last-child{border-bottom:none}
+.ig-action-item:active{background:rgba(255,255,255,0.06)}
+.ig-action-item.danger{color:#ed4956;font-weight:600}
+
+/* INPUT ACTION BANNER (REPLY/EDIT) */
+.input-action-banner{
+  padding:8px 16px;
+  background:rgba(255,255,255,0.06);
+  border-top:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+}
+.banner-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  overflow:hidden;
+  max-width:85%;
+}
+.banner-title{
+  font-weight:700;
+  color:var(--right);
+  font-size:11px;
+}
+.banner-desc{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  opacity:.75;
+}
+.banner-close{
+  cursor:pointer;
+  font-size:16px;
+  opacity:.6;
+  padding:2px 6px;
+}
+.banner-close:hover{opacity:1}
 
 /* VOICE */
 .voice{display:flex;align-items:center;gap:10px}
@@ -235,24 +385,39 @@ textarea{
 <div class="app">
 
 <div class="header">
-  <h1>Hunter & Prey 💘</h1>
+  <div class="ig-user-info">
+    <div class="ig-avatar" id="partnerAvatar">💘</div>
+    <div class="ig-meta">
+      <h1 id="chatTitle">Direct</h1>
+      <div class="ig-substatus">
+        <span class="status" id="status">● offline</span>
+        <span class="status typing-text" id="typingIndicator" style="display:none;">typing...</span>
+      </div>
+    </div>
+  </div>
   <div class="actions">
-    <span class="status" id="typingIndicator" style="display:none; color:var(--right); font-weight:bold; font-style:italic;">typing...</span>
-    <span class="status" id="status">●</span>
-    <div class="action" id="theme">🎨</div>
-    <div class="action" id="clear">Clear</div>
+    <div class="action" id="theme" title="Change Theme">🎨</div>
+    <div class="action" id="clear" title="Clear Chat">🗑️</div>
   </div>
 </div>
 
 <div class="messages" id="messages"></div>
 
+<div class="input-action-banner" id="inputActionBanner" style="display:none;">
+  <div class="banner-text">
+    <span class="banner-title" id="bannerTitle">Replying</span>
+    <span class="banner-desc" id="bannerDesc">...</span>
+  </div>
+  <span class="banner-close" id="bannerClose">✕</span>
+</div>
+
 <div class="input">
-  <label class="icon">📎
+  <label class="icon" title="Photos & Videos">🖼️
     <input type="file" hidden id="media" accept="image/*,video/*">
   </label>
-  <textarea id="text" placeholder="here sweetheart…" rows="1"></textarea>
-  <div class="icon" id="mic">🎤</div>
-  <div class="icon send" id="send">💌</div>
+  <textarea id="text" placeholder="Message…" rows="1"></textarea>
+  <div class="icon" id="mic" title="Voice note">🎤</div>
+  <div class="icon send" id="send" title="Send">➤</div>
 </div>
 
 <div class="viewer" id="viewer">
@@ -275,19 +440,35 @@ textarea{
   </div>
 </div>
 
-<!-- CONTEXT MENU -->
+<!-- INSTAGRAM CONTEXT MENU -->
 <div class="context-overlay" id="contextOverlay">
   <div class="context-menu">
-    <div class="emojis" id="contextEmojis">
+    <div class="ig-reaction-capsule" id="contextEmojis">
       <span data-emoji="❤️">❤️</span>
       <span data-emoji="😂">😂</span>
       <span data-emoji="😮">😮</span>
       <span data-emoji="😢">😢</span>
-      <span data-emoji="👍">👍</span>
+      <span data-emoji="🔥">🔥</span>
+      <span data-emoji="👏">👏</span>
     </div>
-    <button class="context-btn" id="contextReply">Reply</button>
-    <button class="context-btn danger" id="contextDelete">Delete</button>
-    <button class="context-btn" id="contextCancel">Cancel</button>
+    <div class="ig-action-sheet">
+      <button class="ig-action-item" id="contextReply">
+        <span>Reply</span>
+        <span>↩️</span>
+      </button>
+      <button class="ig-action-item" id="contextCopy">
+        <span>Copy</span>
+        <span>📋</span>
+      </button>
+      <button class="ig-action-item" id="contextEdit" style="display:none;">
+        <span>Edit</span>
+        <span>✏️</span>
+      </button>
+      <button class="ig-action-item danger" id="contextUnsend" style="display:none;">
+        <span>Unsend</span>
+        <span>🗑️</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -332,8 +513,17 @@ const joinBtn = document.getElementById("joinBtn");
 const status = document.getElementById("status");
 const typingIndicator = document.getElementById("typingIndicator");
 const contextOverlay = document.getElementById("contextOverlay");
+const partnerAvatar = document.getElementById("partnerAvatar");
+const chatTitle = document.getElementById("chatTitle");
+const inputActionBanner = document.getElementById("inputActionBanner");
+const bannerTitle = document.getElementById("bannerTitle");
+const bannerDesc = document.getElementById("bannerDesc");
+const bannerClose = document.getElementById("bannerClose");
 let activeMessageId = null;
 let isLongPress = false;
+let replyingTo = null;
+let editingMessageId = null;
+let allMsgs = [];
 
 /* SETUP */
 if (!role || !roomCode) {
@@ -378,23 +568,26 @@ function setupPresence() {
   set(presenceRef, { online: true, timestamp: Date.now() });
   onDisconnect(presenceRef).remove();
   
+  const otherRole = role === "hunter" ? "prey" : "hunter";
+  partnerAvatar.textContent = otherRole === "hunter" ? "🎯" : "💖";
+  chatTitle.textContent = otherRole === "hunter" ? "Hunter" : "Prey";
+
   // Monitor other user's presence
-    const otherRole = role === "hunter" ? "prey" : "hunter";
-    onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
-      if (snapshot.exists()) {
-        status.textContent = "● online";
-        status.classList.add("online");
-      } else {
-        status.textContent = "● offline";
-        status.classList.remove("online");
-      }
-    });
-  
-    // Monitor other user's typing status
-    onValue(ref(db, `rooms/${roomCode}/typing/${otherRole}`), snapshot => {
-      typingIndicator.style.display = snapshot.val() ? "inline" : "none";
-    });
-  }
+  onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
+    if (snapshot.exists()) {
+      status.textContent = "● Active now";
+      status.classList.add("online");
+    } else {
+      status.textContent = "● Offline";
+      status.classList.remove("online");
+    }
+  });
+
+  // Monitor other user's typing status
+  onValue(ref(db, `rooms/${roomCode}/typing/${otherRole}`), snapshot => {
+    typingIndicator.style.display = snapshot.val() ? "inline" : "none";
+  });
+}
 
 /* CHAT INIT */
 function initChat() {
@@ -413,6 +606,7 @@ function initChat() {
 /* RENDER */
 function render(msgs) {
   let html = "";
+  allMsgs = msgs;
   msgs.sort((a, b) => a.time - b.time);
   
   msgs.forEach((m, i) => {
@@ -433,144 +627,197 @@ function render(msgs) {
     }
     
     if (m.type === "media") {
-          content = `<div class="media" data-i="${i}">
-            ${m.mediaType === "image" ? `<img src="${m.src}">` : `<video src="${m.src}" muted></video>`}
-          </div>`;
-        }
+      content = `<div class="media" data-i="${i}">
+        ${m.mediaType === "image" ? `<img src="${m.src}">` : `<video src="${m.src}" muted></video>`}
+      </div>`;
+    }
+
+    let replySnippet = "";
+    if (m.replyTo) {
+      replySnippet = `<div class="bubble-reply-ref">
+        <div class="reply-user">${escapeHtml(m.replyTo.sender === role ? 'You' : m.replyTo.sender)}</div>
+        <div>${escapeHtml(m.replyTo.text)}</div>
+      </div>`;
+    }
     
-        let reactionsHtml = "";
-        if (m.reactions) {
-          const emojis = Object.values(m.reactions);
-          if (emojis.length > 0) {
-            reactionsHtml = `<div class="reactions">${emojis.join("")}</div>`;
-          }
-        }
+    let reactionsHtml = "";
+    if (m.reactions) {
+      const emojis = Object.values(m.reactions);
+      if (emojis.length > 0) {
+        reactionsHtml = `<div class="reactions">${emojis.join("")}</div>`;
+      }
+    }
     
-        html += `
-          <div class="bubble ${side}" data-id="${m.id}" data-sender="${m.sender}">
-            ${content}
-            <div class="time">${new Date(m.time).toLocaleTimeString([], {
-              hour: "2-digit", minute: "2-digit"
-            })}</div>
-            ${reactionsHtml}
-          </div>`;
-      });
+    html += `
+      <div class="bubble ${side}" data-id="${m.id}" data-sender="${m.sender}">
+        ${replySnippet}
+        ${content}
+        <div class="time">${new Date(m.time).toLocaleTimeString([], {
+          hour: "2-digit", minute: "2-digit"
+        })}${m.edited ? ' • edited' : ''}</div>
+        ${reactionsHtml}
+      </div>`;
+  });
   
-      messages.innerHTML = html;
-      attachVoice();
-      attachMedia(msgs);
-      attachLongPress();
-      messages.scrollTop = messages.scrollHeight;
-      }
+  messages.innerHTML = html;
+  attachVoice();
+  attachMedia(msgs);
+  attachLongPress();
+  messages.scrollTop = messages.scrollHeight;
+}
 
-      /* INSTAGRAM-STYLE GESTURES & CONTEXT MENU */
-      function triggerReply() {
-        text.value = `> Replying...\n`;
-        text.focus();
-        contextOverlay.style.display = "none";
-        if(navigator.vibrate) navigator.vibrate(50);
-      }
+/* INSTAGRAM-STYLE ACTIONS */
+function setReplyTarget(msg) {
+  replyingTo = {
+    id: msg.id,
+    sender: msg.sender,
+    text: msg.type === "text" ? msg.text : (msg.type === "voice" ? "🎤 Voice message" : "📷 Media")
+  };
+  editingMessageId = null;
+  bannerTitle.textContent = `Replying to ${msg.sender === role ? 'yourself' : msg.sender}`;
+  bannerDesc.textContent = replyingTo.text;
+  inputActionBanner.style.display = "flex";
+  contextOverlay.style.display = "none";
+  text.focus();
+  if (navigator.vibrate) navigator.vibrate(50);
+}
 
-      function attachLongPress() {
-        let pressTimer;
-        let lastTap = 0;
+function setEditTarget(msg) {
+  if (msg.sender !== role || msg.type !== "text") return;
+  editingMessageId = msg.id;
+  replyingTo = null;
+  bannerTitle.textContent = "Editing message";
+  bannerDesc.textContent = msg.text;
+  inputActionBanner.style.display = "flex";
+  text.value = msg.text;
+  contextOverlay.style.display = "none";
+  text.focus();
+}
+
+bannerClose.onclick = () => {
+  if (editingMessageId) text.value = "";
+  editingMessageId = null;
+  replyingTo = null;
+  inputActionBanner.style.display = "none";
+};
+
+function attachLongPress() {
+  let pressTimer;
+  let lastTap = 0;
   
-        document.querySelectorAll('.bubble').forEach(b => {
-          let startX = 0, currentX = 0;
+  document.querySelectorAll('.bubble').forEach(b => {
+    let startX = 0, currentX = 0;
     
-          const startPress = (e) => {
-            if(e.target.closest('.play') || e.target.closest('.progress')) return;
-            isLongPress = false;
-            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            currentX = startX;
+    const startPress = (e) => {
+      if (e.target.closest('.play') || e.target.closest('.progress')) return;
+      isLongPress = false;
+      startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+      currentX = startX;
       
-            pressTimer = setTimeout(() => {
-              isLongPress = true;
-              openContextMenu(b.dataset.id, b.dataset.sender);
-            }, 450);
-          };
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        openContextMenu(b.dataset.id, b.dataset.sender);
+      }, 450);
+    };
     
-          const movePress = (e) => {
-            if (!startX) return;
-            currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            const deltaX = currentX - startX;
-      
-            // Swipe right to reply
-            if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
-            if (deltaX > 0 && deltaX < 100) {
-              b.style.transform = `translateX(${deltaX}px)`;
-            }
-          };
-
-          const endPress = (e) => {
-            clearTimeout(pressTimer);
-            const deltaX = currentX - startX;
-            b.style.transform = ''; // snap back
-      
-            // Trigger Reply on Swipe
-            if (deltaX > 50) {
-              triggerReply();
-            }
-            startX = 0;
-      
-            // Double Tap to ❤️
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 300 && tapLength > 0 && !isLongPress) {
-              update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" });
-              if (navigator.vibrate) navigator.vibrate(50);
-              e.preventDefault();
-            }
-            lastTap = currentTime;
-          };
-    
-          b.addEventListener('mousedown', startPress);
-          b.addEventListener('mousemove', movePress);
-          b.addEventListener('mouseup', endPress);
-          b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
-    
-          b.addEventListener('touchstart', startPress, {passive: true});
-          b.addEventListener('touchmove', movePress, {passive: true});
-          b.addEventListener('touchend', endPress);
-    
-          b.addEventListener('contextmenu', e => {
-            e.preventDefault();
-            isLongPress = true;
-            openContextMenu(b.dataset.id, b.dataset.sender);
-          });
-        });
+    const movePress = (e) => {
+      if (!startX) return;
+      currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+      const deltaX = currentX - startX;
+      if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
+      if (deltaX > 0 && deltaX < 80) {
+        b.style.transform = `translateX(${deltaX}px)`;
       }
+    };
 
-      function openContextMenu(msgId, sender) {
-        activeMessageId = msgId;
-        contextOverlay.style.display = "flex";
-        document.getElementById("contextDelete").style.display = (sender === role) ? "block" : "none";
-        if(navigator.vibrate) navigator.vibrate(50);
+    const endPress = (e) => {
+      clearTimeout(pressTimer);
+      const deltaX = currentX - startX;
+      b.style.transform = '';
+      
+      if (deltaX > 45) {
+        const msg = allMsgs.find(m => m.id === b.dataset.id);
+        if (msg) setReplyTarget(msg);
       }
+      startX = 0;
+      
+      // Double tap to heart
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0 && !isLongPress) {
+        update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+        if (navigator.vibrate) navigator.vibrate(50);
+        e.preventDefault();
+      }
+      lastTap = currentTime;
+    };
+    
+    b.addEventListener('mousedown', startPress);
+    b.addEventListener('mousemove', movePress);
+    b.addEventListener('mouseup', endPress);
+    b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
+    
+    b.addEventListener('touchstart', startPress, {passive: true});
+    b.addEventListener('touchmove', movePress, {passive: true});
+    b.addEventListener('touchend', endPress);
+    
+    b.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      isLongPress = true;
+      openContextMenu(b.dataset.id, b.dataset.sender);
+    });
+  });
+}
 
-      // Close menu when clicking the overlay (outside the menu)
-      contextOverlay.onclick = (e) => {
-        if (e.target === contextOverlay) contextOverlay.style.display = "none";
-      };
+function openContextMenu(msgId, sender) {
+  activeMessageId = msgId;
+  const msg = allMsgs.find(m => m.id === msgId);
+  const isMine = sender === role;
+  
+  document.getElementById("contextUnsend").style.display = isMine ? "flex" : "none";
+  document.getElementById("contextEdit").style.display = (isMine && msg && msg.type === "text") ? "flex" : "none";
+  
+  contextOverlay.style.display = "flex";
+  if (navigator.vibrate) navigator.vibrate(50);
+}
 
-      document.getElementById("contextCancel").onclick = () => contextOverlay.style.display = "none";
+contextOverlay.onclick = (e) => {
+  if (e.target === contextOverlay) contextOverlay.style.display = "none";
+};
 
-      document.getElementById("contextEmojis").onclick = async (e) => {
-        if (e.target.tagName === 'SPAN') {
-          const emoji = e.target.dataset.emoji;
-          await update(ref(db, `rooms/${roomCode}/messages/${activeMessageId}/reactions`), { [role]: emoji });
-          contextOverlay.style.display = "none";
-        }
-      };
+document.getElementById("contextEmojis").onclick = async (e) => {
+  if (e.target.tagName === 'SPAN') {
+    const emoji = e.target.dataset.emoji;
+    await update(ref(db, `rooms/${roomCode}/messages/${activeMessageId}/reactions`), { [role]: emoji }).catch(console.error);
+    contextOverlay.style.display = "none";
+  }
+};
 
-      document.getElementById("contextDelete").onclick = async () => {
-        if(confirm("Delete this message?")) {
-          await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`));
-          contextOverlay.style.display = "none";
-        }
-      };
+document.getElementById("contextReply").onclick = () => {
+  const msg = allMsgs.find(m => m.id === activeMessageId);
+  if (msg) setReplyTarget(msg);
+};
 
-      document.getElementById("contextReply").onclick = triggerReply;
+document.getElementById("contextCopy").onclick = () => {
+  const msg = allMsgs.find(m => m.id === activeMessageId);
+  if (msg) {
+    const copyVal = msg.type === "text" ? msg.text : msg.src;
+    navigator.clipboard.writeText(copyVal).catch(console.error);
+  }
+  contextOverlay.style.display = "none";
+};
+
+document.getElementById("contextEdit").onclick = () => {
+  const msg = allMsgs.find(m => m.id === activeMessageId);
+  if (msg) setEditTarget(msg);
+};
+
+document.getElementById("contextUnsend").onclick = async () => {
+  if (confirm("Unsend this message?")) {
+    await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`)).catch(console.error);
+    contextOverlay.style.display = "none";
+  }
+};
 
       /* VOICE */
 function attachVoice() {
@@ -629,14 +876,32 @@ function escapeHtml(text) {
 
 /* SEND TEXT */
 send.onclick = async () => {
-  if (!text.value.trim()) return;
-  const messagesRef = ref(db, `rooms/${roomCode}/messages`);
-  await push(messagesRef, {
-    type: "text",
-    text: text.value,
-    sender: role,
-    time: Date.now()
-  });
+  const trimmed = text.value.trim();
+  if (!trimmed) return;
+  
+  if (editingMessageId) {
+    await update(ref(db, `rooms/${roomCode}/messages/${editingMessageId}`), {
+      text: trimmed,
+      edited: true
+    }).catch(console.error);
+    editingMessageId = null;
+    inputActionBanner.style.display = "none";
+  } else {
+    const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+    const payload = {
+      type: "text",
+      text: trimmed,
+      sender: role,
+      time: Date.now()
+    };
+    if (replyingTo) {
+      payload.replyTo = replyingTo;
+      replyingTo = null;
+      inputActionBanner.style.display = "none";
+    }
+    await push(messagesRef, payload).catch(console.error);
+  }
+  
   text.value = "";
   set(ref(db, `rooms/${roomCode}/typing/${role}`), false).catch(console.error);
 };
