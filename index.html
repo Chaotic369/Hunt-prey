@@ -87,7 +87,23 @@ body{
   padding:12px 16px;
   border-radius:20px;
   margin-top:14px;
+  position:relative;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  cursor:pointer;
+  transition:transform 0.1s;
 }
+.bubble:active{transform:scale(0.98)}
+.reactions{position:absolute;bottom:-10px;right:10px;background:var(--panel);border:1px solid var(--bg);border-radius:12px;padding:2px 6px;font-size:12px;display:flex;gap:4px;z-index:10;box-shadow:0 2px 5px rgba(0,0,0,0.3)}
+.context-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+.context-menu{background:var(--panel);padding:16px;border-radius:16px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;animation:pop 0.2s cubic-bezier(0.18,0.89,0.32,1.28)}
+@keyframes pop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+.context-menu .emojis{display:flex;justify-content:space-between;font-size:28px;margin-bottom:8px;padding:0 8px}
+.context-menu .emojis span{cursor:pointer;transition:transform 0.2s;line-height:1}
+.context-menu .emojis span:hover{transform:scale(1.2)}
+.context-btn{padding:14px;background:var(--bg);color:var(--text);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
+.context-btn.danger{color:#ef4444}
 .right{
   background:var(--right);
   color:#fff;
@@ -212,45 +228,6 @@ textarea{
   border-color:var(--right);
   background:var(--right);
 }
-
-/* ================= INTERACTIONS ================= */
-.bubble {
-  position: relative;
-  user-select: none;
-  -webkit-user-select: none;
-  transition: transform 0.1s;
-}
-.bubble:active { transform: scale(0.98); }
-
-.context-menu {
-  position: fixed; background: var(--panel); border: 1px solid var(--left);
-  border-radius: 16px; padding: 12px; display: none; gap: 16px; z-index: 1000;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5); align-items: center;
-}
-.reaction-btn { font-size: 24px; cursor: pointer; transition: transform 0.2s; }
-.reaction-btn:hover { transform: scale(1.3) translateY(-4px); }
-.action-btn { font-size: 13px; color: var(--text); background: var(--left); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-.bubble-reactions { 
-  position: absolute; bottom: -12px; right: 12px; background: var(--panel); 
-  border-radius: 12px; padding: 2px 6px; font-size: 14px; display: flex; gap: 2px; 
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: 1px solid var(--bg); z-index: 2;
-}
-
-.reply-preview { 
-  font-size: 12px; opacity: 0.8; border-left: 3px solid var(--bg); 
-  padding-left: 8px; margin-bottom: 8px; border-radius: 4px; 
-  background: rgba(0,0,0,0.1); padding-top: 4px; padding-bottom: 4px; 
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-.reply-bar { 
-  padding: 10px 16px; background: var(--left); font-size: 13px; 
-  display: none; justify-content: space-between; align-items: center; 
-  border-top: 1px solid var(--panel); border-bottom: 1px solid var(--panel);
-}
-.close-reply { cursor: pointer; font-size: 20px; font-weight: bold; opacity: 0.7; }
-.close-reply:hover { opacity: 1; }
 </style>
 </head>
 
@@ -298,9 +275,25 @@ textarea{
   </div>
 </div>
 
+<!-- CONTEXT MENU -->
+<div class="context-overlay" id="contextOverlay">
+  <div class="context-menu">
+    <div class="emojis" id="contextEmojis">
+      <span data-emoji="❤️">❤️</span>
+      <span data-emoji="😂">😂</span>
+      <span data-emoji="😮">😮</span>
+      <span data-emoji="😢">😢</span>
+      <span data-emoji="👍">👍</span>
+    </div>
+    <button class="context-btn" id="contextReply">Reply</button>
+    <button class="context-btn danger" id="contextDelete">Delete</button>
+    <button class="context-btn" id="contextCancel">Cancel</button>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, push, onValue, set, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, push, onValue, set, remove, onDisconnect, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
 // Firebase config
@@ -338,6 +331,9 @@ const roomCodeInput = document.getElementById("roomCode");
 const joinBtn = document.getElementById("joinBtn");
 const status = document.getElementById("status");
 const typingIndicator = document.getElementById("typingIndicator");
+const contextOverlay = document.getElementById("contextOverlay");
+let activeMessageId = null;
+let isLongPress = false;
 
 /* SETUP */
 if (!role || !roomCode) {
@@ -437,27 +433,96 @@ function render(msgs) {
     }
     
     if (m.type === "media") {
-      content = `<div class="media" data-i="${i}">
-        ${m.mediaType === "image" ? `<img src="${m.src}">` : `<video src="${m.src}" muted></video>`}
-      </div>`;
-    }
+          content = `<div class="media" data-i="${i}">
+            ${m.mediaType === "image" ? `<img src="${m.src}">` : `<video src="${m.src}" muted></video>`}
+          </div>`;
+        }
     
-    html += `
-      <div class="bubble ${side}">
-        ${content}
-        <div class="time">${new Date(m.time).toLocaleTimeString([], {
-          hour: "2-digit", minute: "2-digit"
-        })}</div>
-      </div>`;
-  });
+        let reactionsHtml = "";
+        if (m.reactions) {
+          const emojis = Object.values(m.reactions);
+          if (emojis.length > 0) {
+            reactionsHtml = `<div class="reactions">${emojis.join("")}</div>`;
+          }
+        }
+    
+        html += `
+          <div class="bubble ${side}" data-id="${m.id}" data-sender="${m.sender}">
+            ${content}
+            <div class="time">${new Date(m.time).toLocaleTimeString([], {
+              hour: "2-digit", minute: "2-digit"
+            })}</div>
+            ${reactionsHtml}
+          </div>`;
+      });
   
-  messages.innerHTML = html;
-  attachVoice();
-  attachMedia(msgs);
-  messages.scrollTop = messages.scrollHeight;
-}
+      messages.innerHTML = html;
+      attachVoice();
+      attachMedia(msgs);
+      attachLongPress();
+      messages.scrollTop = messages.scrollHeight;
+      }
 
-/* VOICE */
+      /* LONG PRESS & CONTEXT MENU */
+      function attachLongPress() {
+        let pressTimer;
+        document.querySelectorAll('.bubble').forEach(b => {
+          const startPress = (e) => {
+            if(e.target.closest('.play') || e.target.closest('.progress')) return;
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+              isLongPress = true;
+              openContextMenu(b.dataset.id, b.dataset.sender);
+            }, 450);
+          };
+          const cancelPress = () => clearTimeout(pressTimer);
+    
+          b.addEventListener('mousedown', startPress);
+          b.addEventListener('touchstart', startPress, {passive: true});
+          b.addEventListener('mouseup', cancelPress);
+          b.addEventListener('mouseleave', cancelPress);
+          b.addEventListener('touchend', cancelPress);
+          b.addEventListener('touchmove', cancelPress);
+    
+          b.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            isLongPress = true;
+            openContextMenu(b.dataset.id, b.dataset.sender);
+          });
+        });
+      }
+
+      function openContextMenu(msgId, sender) {
+        activeMessageId = msgId;
+        contextOverlay.style.display = "flex";
+        document.getElementById("contextDelete").style.display = (sender === role) ? "block" : "none";
+        if(navigator.vibrate) navigator.vibrate(50);
+      }
+
+      document.getElementById("contextCancel").onclick = () => contextOverlay.style.display = "none";
+
+      document.getElementById("contextEmojis").onclick = async (e) => {
+        if (e.target.tagName === 'SPAN') {
+          const emoji = e.target.dataset.emoji;
+          await update(ref(db, `rooms/${roomCode}/messages/${activeMessageId}/reactions`), { [role]: emoji });
+          contextOverlay.style.display = "none";
+        }
+      };
+
+      document.getElementById("contextDelete").onclick = async () => {
+        if(confirm("Delete this message?")) {
+          await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`));
+          contextOverlay.style.display = "none";
+        }
+      };
+
+      document.getElementById("contextReply").onclick = () => {
+        text.value = `> Replying...\n`;
+        text.focus();
+        contextOverlay.style.display = "none";
+      };
+
+      /* VOICE */
 function attachVoice() {
   document.querySelectorAll(".play").forEach(btn => {
     const i = btn.dataset.i;
@@ -486,6 +551,7 @@ function attachVoice() {
 function attachMedia(msgs) {
   document.querySelectorAll(".media").forEach(el => {
     el.onclick = () => {
+      if (isLongPress) return;
       const m = msgs[el.dataset.i];
       viewerContent.innerHTML = m.mediaType === "image"
         ? `<img src="${m.src}">`
