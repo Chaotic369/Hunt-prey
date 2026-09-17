@@ -455,12 +455,9 @@ textarea{
   <div class="modal-content">
     <h2>Settings</h2>
     <h3 style="font-size:14px;margin-bottom:8px">Color Theme</h3>
-    <div class="settings-grid" id="colorGrid">
-      <div class="color-opt active" style="background:#3797f0" data-color="#3797f0"></div>
-      <div class="color-opt" style="background:#ec4899" data-color="#ec4899"></div>
-      <div class="color-opt" style="background:#8b5cf6" data-color="#8b5cf6"></div>
-      <div class="color-opt" style="background:#10b981" data-color="#10b981"></div>
-    </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <input type="color" id="colorSlider" value="#3797f0" style="width:100%;height:44px;border:none;border-radius:8px;background:none;cursor:pointer;padding:0;">
+        </div>
     
     <h3 style="font-size:14px;margin-bottom:8px">Wallpaper (Syncs for both)</h3>
         <input type="file" hidden id="wallpaperInput" accept="image/*">
@@ -603,6 +600,17 @@ function applyTheme() {
 document.getElementById("theme").onclick = () => {
   themeIndex = (themeIndex + 1) % 2;
   applyTheme();
+  if (roomCode) {
+    onValue(ref(db, `rooms/${roomCode}/settings`), snapshot => {
+      const s = snapshot.val() || {};
+      if (!s.color) {
+        const defaultColor = themeIndex === 0 ? "#3797f0" : "#1d6fd1";
+        document.documentElement.style.setProperty('--right', defaultColor);
+        document.body.style.setProperty('--right', defaultColor);
+        colorSlider.value = defaultColor;
+      }
+    }, { onlyOnce: true });
+  }
 };
 
 /* PRESENCE */
@@ -656,13 +664,10 @@ function initChat() {
     }
     
     // Sync Color
-        if (s.color) {
-          document.documentElement.style.setProperty('--right', s.color);
-          document.body.style.setProperty('--right', s.color);
-          document.querySelectorAll('.color-opt').forEach(el => {
-            el.classList.toggle('active', el.dataset.color === s.color);
-          });
-        }
+        const activeColor = s.color || (themeIndex === 0 ? "#3797f0" : "#1d6fd1");
+        document.documentElement.style.setProperty('--right', activeColor);
+        document.body.style.setProperty('--right', activeColor);
+        colorSlider.value = activeColor;
     
     // Sync Wallpaper
         if (s.wallpaper !== undefined) {
@@ -691,11 +696,10 @@ avatarInput.onchange = async e => {
 settingsBtn.onclick = () => settingsModal.style.display = "flex";
 closeSettingsBtn.onclick = () => settingsModal.style.display = "none";
 
-document.querySelectorAll('.color-opt').forEach(opt => {
-  opt.onclick = () => {
-    update(ref(db, `rooms/${roomCode}/settings`), { color: opt.dataset.color });
-  };
-});
+const colorSlider = document.getElementById("colorSlider");
+colorSlider.oninput = () => {
+  update(ref(db, `rooms/${roomCode}/settings`), { color: colorSlider.value }).catch(console.error);
+};
 
 const wallpaperBtn = document.getElementById("wallpaperBtn");
 const wallpaperInput = document.getElementById("wallpaperInput");
