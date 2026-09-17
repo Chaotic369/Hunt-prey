@@ -710,9 +710,9 @@ textarea{
             </div>
     
             <div class="popup-row">
-              <span class="popup-row-label">Chat PIN</span>
-              <input type="text" id="pinUpdateInput" class="settings-text-input" inputmode="numeric" placeholder="2007">
-            </div>
+                  <span class="popup-row-label">Chat PIN</span>
+                  <input type="password" id="pinUpdateInput" class="settings-text-input" inputmode="numeric" placeholder="****" autocomplete="new-password">
+                </div>
 
             <div class="popup-row">
                   <span class="popup-row-label">Wallpaper</span>
@@ -1032,11 +1032,21 @@ partnerNameInput.onchange = () => {
   update(ref(db, `rooms/${roomCode}/settings`), { [`names/${otherRole}`]: val }).catch(console.error);
   push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "name", target: otherRole, value: val, sender: role, time: Date.now() });
 };
-pinUpdateInput.onchange = () => {
+pinUpdateInput.onchange = async () => {
   const val = pinUpdateInput.value.trim();
   if(val) {
-    update(ref(db, `rooms/${roomCode}/settings`), { pin: val }).catch(console.error);
-    push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "pin", sender: role, time: Date.now() });
+    if (confirm(`Are you sure you want to change the chat PIN to "${val}"?`)) {
+      await update(ref(db, `rooms/${roomCode}/settings`), { pin: val }).catch(console.error);
+      await push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "pin", sender: role, time: Date.now() }).catch(console.error);
+    } else {
+      try {
+        const pinSnap = await get(ref(db, `rooms/${roomCode}/settings/pin`));
+        pinUpdateInput.value = pinSnap.exists() ? String(pinSnap.val()) : "2007";
+      } catch (err) {
+        console.error(err);
+        pinUpdateInput.value = "2007";
+      }
+    }
   }
 };
 
