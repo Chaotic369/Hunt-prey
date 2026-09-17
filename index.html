@@ -1972,6 +1972,11 @@ function escapeHtml(text) {
 
 /* SEND TEXT */
 send.onclick = async () => {
+  if (recording) {
+    stopVoice();
+    return;
+  }
+
   const trimmed = text.value.trim();
   if (!trimmed) return;
   
