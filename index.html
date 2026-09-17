@@ -1454,6 +1454,8 @@ wallpaperInput.onchange = async e => {
 function render(msgs) {
   let html = "";
   allMsgs = msgs;
+  // Fallback for pending server timestamps during optimistic UI updates
+  msgs.forEach(m => { if (!m.time) m.time = Date.now(); });
   msgs.sort((a, b) => a.time - b.time);
   
   msgs.forEach((m, i) => {
@@ -1990,11 +1992,11 @@ send.onclick = async () => {
   } else {
     const messagesRef = ref(db, `rooms/${roomCode}/messages`);
     const payload = {
-      type: "text",
-      text: trimmed,
-      sender: role,
-      time: Date.now()
-    };
+          type: "text",
+          text: trimmed,
+          sender: role,
+          time: serverTimestamp()
+        };
     if (replyingTo) {
       payload.replyTo = replyingTo;
       replyingTo = null;
@@ -2060,15 +2062,15 @@ document.querySelectorAll('.attach-file').forEach(input => {
                 }
       
                 const messagesRef = ref(db, `rooms/${roomCode}/messages`);
-                      await push(messagesRef, {
-                        type: "media",
-                        src: url,
-                        mediaType: type,
-                        fileName: f.name,
-                        sender: role,
-                        time: Date.now(),
-                        storagePath: isExternal ? null : uniquePath
-                      });
+                                  await push(messagesRef, {
+                                    type: "media",
+                                    src: url,
+                                    mediaType: type,
+                                    fileName: f.name,
+                                    sender: role,
+                                    time: serverTimestamp(),
+                                    storagePath: isExternal ? null : uniquePath
+                                  });
                     } catch (error) {
                       console.error("Upload error:", error);
                       alert("Failed to upload " + type + "\nReason: " + (error.message || error));
@@ -2183,15 +2185,15 @@ async function startVoice() {
               const url = await uploadToSupabaseWithProgress(blob, uniquePath);
 
               const messagesRef = ref(db, `rooms/${roomCode}/messages`);
-              await push(messagesRef, {
-                type: "voice",
-                src: url,
-                duration: duration,
-                waveform: recWaveformSamples.length ? recWaveformSamples.slice(0, 40) : null,
-                sender: role,
-                time: Date.now(),
-                storagePath: uniquePath
-              });
+                            await push(messagesRef, {
+                              type: "voice",
+                              src: url,
+                              duration: duration,
+                              waveform: recWaveformSamples.length ? recWaveformSamples.slice(0, 40) : null,
+                              sender: role,
+                              time: serverTimestamp(),
+                              storagePath: uniquePath
+                            });
             } catch (error) {
               console.error("Voice upload error:", error);
               alert("Failed to upload voice message");
