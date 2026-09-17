@@ -782,6 +782,21 @@ joinBtn.onclick = () => {
 };
 
 /* THEME */
+let currentWallpaperUrl = "";
+
+function applyWallpaperWithThemeTint(wallpaperUrl) {
+  currentWallpaperUrl = wallpaperUrl || "";
+  const appEl = document.querySelector('.app');
+  if (!currentWallpaperUrl) {
+    appEl.style.backgroundImage = 'none';
+    return;
+  }
+  const tint = themeIndex === 0
+    ? 'linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35))'
+    : 'linear-gradient(rgba(255,255,255,0.35), rgba(255,255,255,0.35))';
+  appEl.style.backgroundImage = `${tint}, url('${currentWallpaperUrl}')`;
+}
+
 applyTheme();
 function applyTheme() {
   document.body.className = "theme-" + themeIndex;
@@ -793,6 +808,7 @@ function applyTheme() {
   } else {
     themeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
   }
+  applyWallpaperWithThemeTint(currentWallpaperUrl);
 }
 document.getElementById("theme").onclick = async () => {
   themeIndex = (themeIndex + 1) % 2;
@@ -878,7 +894,7 @@ function initChat() {
     
     // Sync Wallpaper
         if (s.wallpaper !== undefined) {
-          document.querySelector('.app').style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
+          applyWallpaperWithThemeTint(s.wallpaper);
           wallpaperPreview.style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
           wallpaperRemoveBtn.style.display = s.wallpaper ? '' : 'none';
         }
