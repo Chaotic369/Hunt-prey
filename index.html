@@ -270,16 +270,91 @@ body{
 .banner-close:hover{opacity:1}
 
 /* VOICE */
-.voice{display:flex;align-items:center;gap:10px}
+.voice{display:flex;align-items:center;gap:10px;min-width:180px}
 .play{
-  width:30px;height:30px;border-radius:50%;
+  width:32px;height:32px;border-radius:50%;
   background:#fff;color:#000;
   display:flex;align-items:center;justify-content:center;
-  font-size:12px;cursor:pointer
+  font-size:12px;cursor:pointer;
+  flex-shrink:0;
 }
-.progress{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
-.bar{height:100%;width:0%;background:#fff}
-.duration{font-size:11px;opacity:.7;min-width:34px;text-align:right}
+.waveform{
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:2px;
+  height:24px;
+  cursor:pointer;
+  position:relative;
+}
+.waveform-bar{
+  width:2.5px;
+  border-radius:2px;
+  background:rgba(255,255,255,.35);
+  flex-shrink:0;
+  transition:background 0.1s linear;
+}
+.waveform-bar.played{background:#fff;}
+.duration{font-size:11px;opacity:.7;min-width:32px;text-align:right;flex-shrink:0;}
+
+/* VOICE RECORDING BAR */
+.voice-recording-bar{
+  display:none;
+  flex:1;
+  align-items:center;
+  gap:10px;
+  padding:0 6px;
+  position:relative;
+  overflow:hidden;
+}
+.voice-recording-bar.active{display:flex;}
+.rec-dot{
+  width:10px;height:10px;
+  border-radius:50%;
+  background:#ef4444;
+  flex-shrink:0;
+  animation:recPulse 1.1s ease-in-out infinite;
+}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rec-timer{
+  font-size:14px;
+  font-weight:600;
+  min-width:38px;
+  flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.rec-slide-hint{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:13px;
+  opacity:.55;
+  white-space:nowrap;
+}
+.rec-slide-arrow{
+  display:inline-block;
+  animation:slideArrow 1.4s ease-in-out infinite;
+}
+@keyframes slideArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
+.rec-cancelled-flash{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--panel);
+  font-size:13px;
+  font-weight:600;
+  color:#ef4444;
+  opacity:0;
+  pointer-events:none;
+}
+.rec-cancelled-flash.show{
+  animation:cancelFlash 0.6s ease forwards;
+}
+@keyframes cancelFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
 
 /* MEDIA */
 .media{max-width:200px;border-radius:16px;overflow:hidden;cursor:pointer}
@@ -509,12 +584,18 @@ textarea{
   <span class="banner-close" id="bannerClose"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
 </div>
 
-<div class="input">
-  <label class="icon" title="Photos & Videos">
+<div class="input" id="inputBar">
+  <label class="icon" id="mediaLabel" title="Photos & Videos">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
     <input type="file" hidden id="media" accept="image/*,video/*">
   </label>
   <textarea id="text" placeholder="Message…" rows="1"></textarea>
+  <div class="voice-recording-bar" id="voiceRecordingBar">
+    <div class="rec-dot"></div>
+    <div class="rec-timer" id="recTimer">0:00</div>
+    <div class="rec-slide-hint"><span class="rec-slide-arrow">←</span> Slide to cancel</div>
+    <div class="rec-cancelled-flash" id="recCancelledFlash">Cancelled</div>
+  </div>
   <div class="icon" id="mic" title="Voice note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div>
   <div class="icon send" id="send" title="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></div>
 </div>
@@ -843,13 +924,15 @@ function render(msgs) {
     }
     
     if (m.type === "voice") {
-              content = `<div class="voice">
-                <div class="play" data-i="${i}"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
-                <div class="progress"><div class="bar" id="bar-${i}"></div></div>
-                <div class="duration">${format(m.duration)}</div>
-                <audio id="audio-${i}" src="${m.src}"></audio>
-              </div>`;
-            }
+        const bars = m.waveform && m.waveform.length ? m.waveform : Array.from({length: 28}, () => 6 + Math.floor(Math.random() * 14));
+        const barsHtml = bars.map((h, bi) => `<div class="waveform-bar" data-bi="${bi}" style="height:${h}px"></div>`).join("");
+        content = `<div class="voice">
+          <div class="play" data-i="${i}"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div>
+          <div class="waveform" id="waveform-${i}">${barsHtml}</div>
+          <div class="duration" id="duration-${i}">${format(m.duration)}</div>
+          <audio id="audio-${i}" src="${m.src}"></audio>
+        </div>`;
+      }
     
     if (m.type === "media") {
       content = `<div class="media" data-i="${i}">
@@ -1129,25 +1212,48 @@ document.getElementById("contextUnsend").onclick = async () => {
           btn.dataset.voiceAttached = "1";
           const i = btn.dataset.i;
           const audio = document.getElementById("audio-" + i);
-          const bar = document.getElementById("bar-" + i);
-          if (!audio) return;
-    
+          const waveform = document.getElementById("waveform-" + i);
+          const durationEl = document.getElementById("duration-" + i);
+          if (!audio || !waveform) return;
+
+          const originalDuration = durationEl.textContent;
+          const barEls = () => Array.from(waveform.querySelectorAll('.waveform-bar'));
+
+          const setPlayedRatio = (ratio) => {
+            const bars = barEls();
+            const filledCount = Math.floor(ratio * bars.length);
+            bars.forEach((el, idx) => el.classList.toggle('played', idx < filledCount));
+          };
+
           btn.onclick = () => {
-      if (audio.paused) {
-        audio.play();
-        btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
-      } else {
-        audio.pause();
-        btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            if (audio.paused) {
+              audio.play();
+              btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+            } else {
+              audio.pause();
+              btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            }
+          };
+          audio.ontimeupdate = () => {
+            if (!audio.duration) return;
+            const ratio = audio.currentTime / audio.duration;
+            setPlayedRatio(ratio);
+            durationEl.textContent = format(Math.ceil(audio.duration - audio.currentTime));
+          };
+          audio.onended = () => {
+            btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            setPlayedRatio(0);
+            durationEl.textContent = originalDuration;
+          };
+          waveform.onclick = (e) => {
+            if (!audio.duration) return;
+            const rect = waveform.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = ratio * audio.duration;
+            setPlayedRatio(ratio);
+          };
+        });
       }
-    };
-    audio.ontimeupdate = () => bar.style.width = (audio.currentTime / audio.duration * 100) + "%";
-    audio.onended = () => {
-      btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
-      bar.style.width = "0%";
-    };
-  });
-}
 
 /* MEDIA */
 function attachMedia(msgs) {
@@ -1272,6 +1378,27 @@ media.onchange = async e => {
 
 /* VOICE RECORD */
 let recorder, chunks = [], recording = false, startTime, micStartX = 0, recordingCancelled = false;
+let recTimerInterval = null;
+let recAnalyser = null, recAudioCtx = null, recWaveformSamples = [];
+const voiceRecordingBar = document.getElementById("voiceRecordingBar");
+const recTimer = document.getElementById("recTimer");
+const recCancelledFlash = document.getElementById("recCancelledFlash");
+const mediaLabel = document.getElementById("mediaLabel");
+const CANCEL_THRESHOLD = 90;
+
+function formatRecTimer(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+function sampleWaveform() {
+  if (!recAnalyser) return;
+  const data = new Uint8Array(recAnalyser.frequencyBinCount);
+  recAnalyser.getByteFrequencyData(data);
+  const avg = data.reduce((a, b) => a + b, 0) / data.length;
+  recWaveformSamples.push(Math.max(4, Math.min(24, Math.round(4 + (avg / 255) * 20))));
+}
 
 const startVoice = async (e) => {
   if (e.type === 'touchstart') e.preventDefault();
@@ -1283,31 +1410,52 @@ const startVoice = async (e) => {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
     recorder = new MediaRecorder(s);
     chunks = [];
+    recWaveformSamples = [];
     startTime = Date.now();
     recorder.ondataavailable = e => chunks.push(e.data);
-    
+
+    try {
+      recAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = recAudioCtx.createMediaStreamSource(s);
+      recAnalyser = recAudioCtx.createAnalyser();
+      recAnalyser.fftSize = 64;
+      source.connect(recAnalyser);
+    } catch (audioErr) {
+      recAnalyser = null;
+    }
+
     recorder.onstop = async () => {
-          recorder.stream.getTracks().forEach(t => t.stop());
-          recording = false;
-          mic.style.transform = '';
-          mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
-      
-          if (recordingCancelled) return;
-      
+      recorder.stream.getTracks().forEach(t => t.stop());
+      recording = false;
+      clearInterval(recTimerInterval);
+      if (recAudioCtx) { recAudioCtx.close().catch(() => {}); recAudioCtx = null; recAnalyser = null; }
+      voiceRecordingBar.classList.remove('active');
+      voiceRecordingBar.style.transform = '';
+      mediaLabel.style.display = '';
+      text.style.display = '';
+
+      if (recordingCancelled) {
+        recCancelledFlash.classList.remove('show');
+        void recCancelledFlash.offsetWidth;
+        recCancelledFlash.classList.add('show');
+        return;
+      }
+
       const duration = Math.floor((Date.now() - startTime) / 1000);
       if (duration < 1) return; // Prevent accidental short taps
-      
+
       const blob = new Blob(chunks, { type: "audio/webm" });
       try {
         const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
         await uploadBytes(fileRef, blob);
         const url = await getDownloadURL(fileRef);
-        
+
         const messagesRef = ref(db, `rooms/${roomCode}/messages`);
         await push(messagesRef, {
           type: "voice",
           src: url,
           duration: duration,
+          waveform: recWaveformSamples.length ? recWaveformSamples.slice(0, 40) : null,
           sender: role,
           time: Date.now()
         });
@@ -1318,9 +1466,19 @@ const startVoice = async (e) => {
     };
 
     recorder.start();
-        recording = true;
-        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="#ef4444"></circle></svg>`;
-      } catch (err) {
+    recording = true;
+    mediaLabel.style.display = 'none';
+    text.style.display = 'none';
+    voiceRecordingBar.classList.add('active');
+    recTimer.textContent = "0:00";
+    mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="#ef4444"></circle></svg>`;
+
+    recTimerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      recTimer.textContent = formatRecTimer(elapsed);
+      sampleWaveform();
+    }, 200);
+  } catch (err) {
     console.error("Mic access denied", err);
   }
 };
@@ -1329,17 +1487,18 @@ const moveVoice = (e) => {
   if (!recording || recordingCancelled) return;
   const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
   const deltaX = currentX - micStartX;
-  
-  if (Math.abs(deltaX) > 5) {
-    mic.style.transform = `translateX(${deltaX}px)`;
+
+  if (deltaX < 0) {
+    const clamped = Math.max(deltaX, -140);
+    voiceRecordingBar.style.transform = `translateX(${clamped}px)`;
+    const fadeRatio = Math.max(0, 1 - Math.abs(clamped) / CANCEL_THRESHOLD);
+    voiceRecordingBar.style.opacity = String(0.4 + fadeRatio * 0.6);
   }
-  
-  // Slide left or right to cancel
-  if (Math.abs(deltaX) > 60) {
+
+  if (Math.abs(deltaX) > CANCEL_THRESHOLD && deltaX < 0) {
     recordingCancelled = true;
     if (recorder && recorder.state !== "inactive") recorder.stop();
     if (navigator.vibrate) navigator.vibrate(50);
-    mic.style.transform = '';
   }
 };
 
