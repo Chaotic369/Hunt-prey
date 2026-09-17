@@ -333,11 +333,19 @@ body{
   opacity:.55;
   white-space:nowrap;
 }
-.rec-slide-arrow{
-  display:inline-block;
-  animation:slideArrow 1.4s ease-in-out infinite;
+.rec-cancel-btn{
+  width:28px;height:28px;
+  border-radius:50%;
+  background:var(--panel);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  flex-shrink:0;
+  color:var(--text);
+  opacity:.7;
 }
-@keyframes slideArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
+.rec-cancel-btn:active{opacity:1;background:var(--border);}
 .rec-cancelled-flash{
   position:absolute;
   inset:0;
@@ -591,11 +599,12 @@ textarea{
   </label>
   <textarea id="text" placeholder="Message…" rows="1"></textarea>
   <div class="voice-recording-bar" id="voiceRecordingBar">
-    <div class="rec-dot"></div>
-    <div class="rec-timer" id="recTimer">0:00</div>
-    <div class="rec-slide-hint"><span class="rec-slide-arrow">←</span> Slide to cancel</div>
-    <div class="rec-cancelled-flash" id="recCancelledFlash">Cancelled</div>
-  </div>
+      <div class="rec-dot"></div>
+      <div class="rec-timer" id="recTimer">0:00</div>
+      <div class="rec-slide-hint" id="recHintText">Recording…</div>
+      <div class="rec-cancel-btn" id="recCancelBtn" title="Cancel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+      <div class="rec-cancelled-flash" id="recCancelledFlash">Cancelled</div>
+    </div>
   <div class="icon" id="mic" title="Voice note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div>
   <div class="icon send" id="send" title="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></div>
 </div>
@@ -1377,14 +1386,15 @@ media.onchange = async e => {
 };
 
 /* VOICE RECORD */
-let recorder, chunks = [], recording = false, startingUp = false, releasedBeforeReady = false, startTime, micStartX = 0, recordingCancelled = false;
+let recorder, chunks = [], recording = false, startingUp = false, startTime, recordingCancelled = false;
 let recTimerInterval = null, recSafetyTimeout = null;
 let recAnalyser = null, recAudioCtx = null, recWaveformSamples = [];
 const voiceRecordingBar = document.getElementById("voiceRecordingBar");
 const recTimer = document.getElementById("recTimer");
+const recHintText = document.getElementById("recHintText");
+const recCancelBtn = document.getElementById("recCancelBtn");
 const recCancelledFlash = document.getElementById("recCancelledFlash");
 const mediaLabel = document.getElementById("mediaLabel");
-const CANCEL_THRESHOLD = 90;
 const MAX_RECORDING_MS = 3 * 60 * 1000;
 
 function formatRecTimer(totalSeconds) {
@@ -1401,35 +1411,21 @@ function sampleWaveform() {
   recWaveformSamples.push(Math.max(4, Math.min(24, Math.round(4 + (avg / 255) * 20))));
 }
 
-function showSendingState() {
-  recTimer.textContent = "";
-  const hint = voiceRecordingBar.querySelector('.rec-slide-hint');
-  if (hint) hint.textContent = "Sending…";
+function resetRecordingUI() {
+  voiceRecordingBar.classList.remove('active');
+  mediaLabel.style.display = '';
+  text.style.display = '';
+  recHintText.textContent = "Recording…";
+  mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
 }
 
-function resetVoiceBarUI() {
-  const hint = voiceRecordingBar.querySelector('.rec-slide-hint');
-  if (hint) hint.innerHTML = `<span class="rec-slide-arrow">←</span> Slide to cancel`;
-}
-
-const startVoice = async (e) => {
-  if (e.type === 'touchstart') e.preventDefault();
+async function startVoice() {
   if (recording || startingUp) return;
   startingUp = true;
-  releasedBeforeReady = false;
   recordingCancelled = false;
-  micStartX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
 
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    // If the user already released before permission resolved, don't start at all.
-    if (releasedBeforeReady) {
-      startingUp = false;
-      s.getTracks().forEach(t => t.stop());
-      return;
-    }
-
     recorder = new MediaRecorder(s);
     chunks = [];
     recWaveformSamples = [];
@@ -1454,13 +1450,7 @@ const startVoice = async (e) => {
       if (recAudioCtx) { recAudioCtx.close().catch(() => {}); recAudioCtx = null; recAnalyser = null; }
 
       if (recordingCancelled) {
-        voiceRecordingBar.classList.remove('active');
-        voiceRecordingBar.style.transform = '';
-        voiceRecordingBar.style.opacity = '';
-        mediaLabel.style.display = '';
-        text.style.display = '';
-        resetVoiceBarUI();
-        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+        resetRecordingUI();
         recCancelledFlash.classList.remove('show');
         void recCancelledFlash.offsetWidth;
         recCancelledFlash.classList.add('show');
@@ -1469,17 +1459,12 @@ const startVoice = async (e) => {
 
       const duration = Math.floor((Date.now() - startTime) / 1000);
       if (duration < 1) {
-        voiceRecordingBar.classList.remove('active');
-        voiceRecordingBar.style.transform = '';
-        voiceRecordingBar.style.opacity = '';
-        mediaLabel.style.display = '';
-        text.style.display = '';
-        resetVoiceBarUI();
-        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
-        return; // Prevent accidental short taps
+        resetRecordingUI();
+        return; // Prevent accidental instant taps
       }
 
-      showSendingState();
+      recHintText.textContent = "Sending…";
+      recCancelBtn.style.display = 'none';
       const blob = new Blob(chunks, { type: "audio/webm" });
       try {
         const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
@@ -1499,13 +1484,8 @@ const startVoice = async (e) => {
         console.error("Voice upload error:", error);
         alert("Failed to upload voice message");
       } finally {
-        voiceRecordingBar.classList.remove('active');
-        voiceRecordingBar.style.transform = '';
-        voiceRecordingBar.style.opacity = '';
-        mediaLabel.style.display = '';
-        text.style.display = '';
-        resetVoiceBarUI();
-        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+        recCancelBtn.style.display = '';
+        resetRecordingUI();
       }
     };
 
@@ -1531,42 +1511,32 @@ const startVoice = async (e) => {
     console.error("Mic access denied", err);
     startingUp = false;
   }
-};
+}
 
-const moveVoice = (e) => {
-  if (!recording || recordingCancelled) return;
-  const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-  const deltaX = currentX - micStartX;
-
-  if (deltaX < 0) {
-    const clamped = Math.max(deltaX, -140);
-    voiceRecordingBar.style.transform = `translateX(${clamped}px)`;
-    const fadeRatio = Math.max(0, 1 - Math.abs(clamped) / CANCEL_THRESHOLD);
-    voiceRecordingBar.style.opacity = String(0.4 + fadeRatio * 0.6);
-  }
-
-  if (Math.abs(deltaX) > CANCEL_THRESHOLD && deltaX < 0) {
-    recordingCancelled = true;
-    if (recorder && recorder.state !== "inactive") recorder.stop();
-    if (navigator.vibrate) navigator.vibrate(50);
-  }
-};
-
-const stopVoice = (e) => {
-  if (startingUp && !recording) {
-    releasedBeforeReady = true;
-    return;
-  }
-  if (!recording || recordingCancelled) return;
+function stopVoice() {
+  if (!recording) return;
   if (recorder && recorder.state !== "inactive") recorder.stop();
+}
+
+function cancelVoice() {
+  if (!recording) return;
+  recordingCancelled = true;
+  if (navigator.vibrate) navigator.vibrate(50);
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+}
+
+mic.onclick = () => {
+  if (recording) {
+    stopVoice();
+  } else if (!startingUp) {
+    startVoice();
+  }
 };
 
-mic.addEventListener('mousedown', startVoice);
-mic.addEventListener('touchstart', startVoice, {passive: false});
-document.addEventListener('mousemove', moveVoice);
-document.addEventListener('touchmove', moveVoice, {passive: false});
-document.addEventListener('mouseup', stopVoice);
-document.addEventListener('touchend', stopVoice);
+recCancelBtn.onclick = (e) => {
+  e.stopPropagation();
+  cancelVoice();
+};
 
 /* CLEAR */
 document.getElementById("clear").onclick = async () => {
