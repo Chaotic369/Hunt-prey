@@ -500,7 +500,7 @@ textarea{
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, push, onValue, set, remove, onDisconnect, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, push, onValue, get, set, remove, onDisconnect, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
 // Firebase config
@@ -597,11 +597,12 @@ function applyTheme() {
     themeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
   }
 }
-document.getElementById("theme").onclick = () => {
+document.getElementById("theme").onclick = async () => {
   themeIndex = (themeIndex + 1) % 2;
   applyTheme();
   if (roomCode) {
-    onValue(ref(db, `rooms/${roomCode}/settings`), snapshot => {
+    try {
+      const snapshot = await get(ref(db, `rooms/${roomCode}/settings`));
       const s = snapshot.val() || {};
       if (!s.color) {
         const defaultColor = themeIndex === 0 ? "#3797f0" : "#1d6fd1";
@@ -609,7 +610,9 @@ document.getElementById("theme").onclick = () => {
         document.body.style.setProperty('--right', defaultColor);
         colorSlider.value = defaultColor;
       }
-    }, { onlyOnce: true });
+    } catch (err) {
+      console.error(err);
+    }
   }
 };
 
@@ -775,8 +778,10 @@ function render(msgs) {
           let tickColor = "rgba(255,255,255,0.6)";
           let tickSvg = `<svg width="14" height="10" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           if (m.seen) {
-            tickSvg = `<svg width="18" height="10" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="#53bdeb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L10 9.5L18 0.5" stroke="#53bdeb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-          } else if (m.delivered) {
+                  const themeColor = getComputedStyle(document.body).getPropertyValue('--right').trim() || "#3797f0";
+                  const seenColor = darkenColor(themeColor, 0.35);
+                  tickSvg = `<svg width="18" height="10" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="${seenColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L10 9.5L18 0.5" stroke="${seenColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                } else if (m.delivered) {
             tickSvg = `<svg width="18" height="10" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L10 9.5L18 0.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           }
           ticksHtml = `<span class="ticks" style="display:inline-flex;vertical-align:middle;margin-left:3px;">${tickSvg}</span>`;
@@ -836,17 +841,19 @@ bannerClose.onclick = () => {
   inputActionBanner.style.display = "none";
 };
 
+let longPressTouchDevice = false;
 function attachLongPress() {
   let pressTimer;
   let lastTap = 0;
-  let isTouchDevice = false;
 
   document.querySelectorAll('.bubble').forEach(b => {
+    if (b.dataset.longpressAttached) return;
+    b.dataset.longpressAttached = "1";
     let startX = 0, startY = 0, currentX = 0;
 
     const startPress = (e) => {
-      if (e.type === 'touchstart') isTouchDevice = true;
-      if (e.type === 'mousedown' && isTouchDevice) return; // Prevent ghost clicks
+      if (e.type === 'touchstart') longPressTouchDevice = true;
+      if (e.type === 'mousedown' && longPressTouchDevice) return; // Prevent ghost clicks
       if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
 
       isLongPress = false;
@@ -863,80 +870,90 @@ function attachLongPress() {
     };
 
     const movePress = (e) => {
-      if (e.type === 'mousemove' && isTouchDevice) return;
-      if (!startX) return;
+          if (e.type === 'mousemove' && longPressTouchDevice) return;
+          if (!startX) return;
 
-      currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-      const deltaX = currentX - startX;
-      if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
-      if (deltaX > 0 && deltaX < 80) {
-        b.style.transform = `translateX(${deltaX}px)`;
-      }
-    };
-
-    const endPress = (e) => {
-      if (e.type === 'mouseup' && isTouchDevice) return;
-      if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
-
-      clearTimeout(pressTimer);
-      const deltaX = currentX - startX;
-      b.style.transform = '';
-
-      if (deltaX > 45) {
-        const msg = allMsgs.find(m => m.id === b.dataset.id);
-        if (msg) setReplyTarget(msg);
-      }
-      startX = 0;
-
-      // Double tap to heart (Toggle Like)
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTap;
-      if (tapLength < 300 && tapLength > 0 && !isLongPress) {
-        const msg = allMsgs.find(m => m.id === b.dataset.id);
-        if (msg) {
-          const hasHeart = msg.reactions && msg.reactions[role] === "❤️";
-          if (hasHeart) {
-            remove(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions/${role}`)).catch(console.error);
-          } else {
-            update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+          currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+          const deltaX = currentX - startX;
+          if (Math.abs(deltaX) > 10) clearTimeout(pressTimer);
+          if (deltaX > 0 && deltaX < 80) {
+            b.style.transform = `translateX(${deltaX}px)`;
           }
-          if (navigator.vibrate) navigator.vibrate(50);
-        }
-        e.preventDefault();
-      }
-      lastTap = currentTime;
-    };
+        };
 
-    b.addEventListener('mousedown', startPress);
-    b.addEventListener('mousemove', movePress);
-    b.addEventListener('mouseup', endPress);
-    b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
+        const endPress = (e) => {
+          if (e.type === 'mouseup' && longPressTouchDevice) return;
+          if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
 
-    b.addEventListener('touchstart', startPress, {passive: true});
-    b.addEventListener('touchmove', movePress, {passive: true});
-    b.addEventListener('touchend', endPress);
+          clearTimeout(pressTimer);
+          const deltaX = currentX - startX;
+          b.style.transform = '';
 
-    b.addEventListener('contextmenu', e => {
-      if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
-      e.preventDefault();
-      isLongPress = true;
-      openContextMenu(b.dataset.id, b.dataset.sender, e.clientX || startX, e.clientY || startY);
-    });
-  });
-}
+          if (deltaX > 45) {
+            const msg = allMsgs.find(m => m.id === b.dataset.id);
+            if (msg) setReplyTarget(msg);
+          }
+          startX = 0;
 
+          // Double tap to heart (Toggle Like)
+          const currentTime = new Date().getTime();
+          const tapLength = currentTime - lastTap;
+          if (tapLength < 300 && tapLength > 0 && !isLongPress) {
+            const msg = allMsgs.find(m => m.id === b.dataset.id);
+            if (msg) {
+              const hasHeart = msg.reactions && msg.reactions[role] === "❤️";
+              if (hasHeart) {
+                remove(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions/${role}`)).catch(console.error);
+              } else {
+                update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+              }
+              if (navigator.vibrate) navigator.vibrate(50);
+            }
+            e.preventDefault();
+          }
+          lastTap = currentTime;
+        };
+
+        b.addEventListener('mousedown', startPress);
+        b.addEventListener('mousemove', movePress);
+        b.addEventListener('mouseup', endPress);
+        b.addEventListener('mouseleave', () => { clearTimeout(pressTimer); b.style.transform = ''; });
+
+        b.addEventListener('touchstart', startPress, {passive: true});
+        b.addEventListener('touchmove', movePress, {passive: true});
+        b.addEventListener('touchend', endPress);
+
+        b.addEventListener('contextmenu', e => {
+          if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
+          e.preventDefault();
+          isLongPress = true;
+          openContextMenu(b.dataset.id, b.dataset.sender, e.clientX || startX, e.clientY || startY);
+        });
+      });
+    }
+
+let statusUpdateTimeout = null;
 function markDeliveredAndSeen(msgs) {
   if (!roomCode || !role) return;
   const isPageVisible = document.visibilityState === 'visible';
+  const updates = {};
+  let hasUpdates = false;
   msgs.forEach(m => {
     if (m.sender === role) return;
     if (!m.delivered) {
-      update(ref(db, `rooms/${roomCode}/messages/${m.id}`), { delivered: true }).catch(console.error);
+      updates[`${m.id}/delivered`] = true;
+      hasUpdates = true;
     }
     if (isPageVisible && !m.seen) {
-      update(ref(db, `rooms/${roomCode}/messages/${m.id}`), { seen: true }).catch(console.error);
+      updates[`${m.id}/seen`] = true;
+      hasUpdates = true;
     }
   });
+  if (!hasUpdates) return;
+  clearTimeout(statusUpdateTimeout);
+  statusUpdateTimeout = setTimeout(() => {
+    update(ref(db, `rooms/${roomCode}/messages`), updates).catch(console.error);
+  }, 300);
 }
 
 function openContextMenu(msgId, sender, x, y) {
@@ -1051,6 +1068,19 @@ viewer.onclick = e => {
 /* UTILS */
 function format(s) {
   return "0:" + String(s).padStart(2, "0");
+}
+
+function darkenColor(hex, amount) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const num = parseInt(hex, 16);
+  let r = (num >> 16) & 255;
+  let g = (num >> 8) & 255;
+  let b = num & 255;
+  r = Math.max(0, Math.floor(r * (1 - amount)));
+  g = Math.max(0, Math.floor(g * (1 - amount)));
+  b = Math.max(0, Math.floor(b * (1 - amount)));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
 function escapeHtml(text) {
