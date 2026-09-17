@@ -790,6 +790,19 @@ textarea{
   </div>
 </div>
 
+<!-- CROP MODAL -->
+<div class="modal" id="cropModal" style="display:none; z-index:4000; flex-direction:column; gap:20px;">
+  <div style="color:#fff; font-weight:600; font-size:15px;">Drag to pan & zoom</div>
+  <div style="width:260px; height:260px; border-radius:50%; overflow:hidden; position:relative; background:#111; touch-action:none;" id="cropContainer">
+    <img id="cropImg" style="position:absolute; top:0; left:0; transform-origin:top left; cursor:grab;" draggable="false">
+  </div>
+  <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" style="width:260px;">
+  <div style="display:flex; gap:16px; width:260px;">
+    <button id="cropCancel" class="role-btn" style="padding:12px; margin:0;">Cancel</button>
+    <button id="cropSave" class="role-btn active" style="padding:12px; margin:0;">Crop & Save</button>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="settings-popup-overlay" id="settingsModal" style="display:none;">
   <div class="settings-popup">
@@ -1233,21 +1246,118 @@ function initChat() {
 }
 
 /* SETTINGS MODAL & PROFILE UPLOAD */
+const cropModal = document.getElementById("cropModal");
+const cropImg = document.getElementById("cropImg");
+const cropZoom = document.getElementById("cropZoom");
+const cropContainer = document.getElementById("cropContainer");
+const cropCancel = document.getElementById("cropCancel");
+const cropSave = document.getElementById("cropSave");
+
+let currentScale = 1, posX = 0, posY = 0, imgW = 0, imgH = 0;
+const CROP_SIZE = 260;
+
+function updateCropTransform() {
+  const scaledW = imgW * currentScale;
+  const scaledH = imgH * currentScale;
+  const minX = Math.min(0, CROP_SIZE - scaledW);
+  const minY = Math.min(0, CROP_SIZE - scaledH);
+  posX = Math.max(minX, Math.min(0, posX));
+  posY = Math.max(minY, Math.min(0, posY));
+  cropImg.style.transform = `translate(${posX}px, ${posY}px) scale(${currentScale})`;
+}
+
 myAvatarBtn.onclick = () => myAvatarInput.click();
-myAvatarInput.onchange = async e => {
+myAvatarInput.onchange = (e) => {
   const f = e.target.files[0];
   if (!f) return;
-  try {
-    showProgress(5);
-    const uniquePath = `avatar_${role}_${Date.now()}`;
-    const url = await uploadToSupabaseWithProgress(f, uniquePath);
-    await update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: url });
-  } catch (err) {
-    console.error(err);
-    alert("Avatar upload failed");
-  }
+  const url = URL.createObjectURL(f);
+  cropImg.onload = () => {
+    imgW = cropImg.naturalWidth;
+    imgH = cropImg.naturalHeight;
+    const baseScale = Math.max(CROP_SIZE / imgW, CROP_SIZE / imgH);
+    cropZoom.min = baseScale;
+    cropZoom.max = baseScale * 3;
+    cropZoom.value = baseScale;
+    currentScale = baseScale;
+    posX = (CROP_SIZE - imgW * currentScale) / 2;
+    posY = (CROP_SIZE - imgH * currentScale) / 2;
+    updateCropTransform();
+    settingsModal.style.display = "none";
+    cropModal.style.display = "flex";
+  };
+  cropImg.src = url;
   myAvatarInput.value = "";
 };
+
+let isCropDragging = false, cropStartX = 0, cropStartY = 0;
+cropContainer.onpointerdown = (e) => {
+  isCropDragging = true;
+  cropStartX = e.clientX - posX;
+  cropStartY = e.clientY - posY;
+  cropContainer.setPointerCapture(e.pointerId);
+};
+cropContainer.onpointermove = (e) => {
+  if (!isCropDragging) return;
+  posX = e.clientX - cropStartX;
+  posY = e.clientY - cropStartY;
+  updateCropTransform();
+};
+cropContainer.onpointerup = () => isCropDragging = false;
+cropContainer.onpointercancel = () => isCropDragging = false;
+
+cropZoom.oninput = () => {
+  const oldScale = currentScale;
+  currentScale = parseFloat(cropZoom.value);
+  const scaleRatio = currentScale / oldScale;
+  const centerX = CROP_SIZE / 2;
+  const centerY = CROP_SIZE / 2;
+  posX = centerX - (centerX - posX) * scaleRatio;
+  posY = centerY - (centerY - posY) * scaleRatio;
+  updateCropTransform();
+};
+
+cropCancel.onclick = () => {
+  cropModal.style.display = "none";
+  settingsModal.style.display = "flex";
+};
+
+cropSave.onclick = async () => {
+  cropModal.style.display = "none";
+  showProgress(5);
+  const canvas = document.createElement("canvas");
+  canvas.width = 400; 
+  canvas.height = 400;
+  const ctx = canvas.getContext("2d");
+  const ratio = 400 / CROP_SIZE;
+  ctx.drawImage(cropImg, posX * ratio, posY * ratio, imgW * currentScale * ratio, imgH * currentScale * ratio);
+  
+  canvas.toBlob(async (blob) => {
+    if(!blob) return;
+    try {
+      const uniquePath = `avatar_${role}_${Date.now()}.jpg`;
+      const file = new File([blob], uniquePath, {type: "image/jpeg"});
+      const url = await uploadToSupabaseWithProgress(file, uniquePath);
+      await update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: url });
+    } catch(err) {
+      console.error(err);
+      alert("Avatar upload failed");
+    } finally {
+      settingsModal.style.display = "flex";
+    }
+  }, "image/jpeg", 0.9);
+};
+
+myAvatarPreview.style.cursor = "pointer";
+myAvatarPreview.onclick = () => {
+  const bg = myAvatarPreview.style.backgroundImage;
+  if (bg && bg !== 'none') {
+    let url = bg.slice(5, -2);
+    if (url.startsWith('"') && url.endsWith('"')) url = url.slice(1, -1);
+    viewerContent.innerHTML = `<img src="${url}">`;
+    viewer.style.display = "flex";
+  }
+};
+
 myAvatarRemoveBtn.onclick = () => {
   update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: null }).catch(console.error);
 };
