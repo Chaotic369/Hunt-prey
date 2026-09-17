@@ -460,7 +460,7 @@ textarea{
   font-size:14px;
 }
 .role-btn.active{
-  background:var(--border);
+  filter:brightness(1.25);
 }
 
 /* SETTINGS MODAL */
@@ -635,11 +635,11 @@ textarea{
 <div class="modal" id="setupModal">
   <div class="modal-content">
     <div class="role-select">
-      <div class="role-btn" data-role="hunter">Hunter</div>
-      <div class="role-btn" data-role="prey">Prey</div>
-    </div>
+          <div class="role-btn" data-role="hunter">Hunt</div>
+          <div class="role-btn" data-role="prey">Prey</div>
+        </div>
     <div class="pin-entry-container">
-          <input type="text" id="roomCode" inputmode="numeric" autocomplete="off">
+          <input type="text" id="roomCode" inputmode="numeric" autocomplete="new-password" spellcheck="false" data-lpignore="true">
           <button id="joinBtn" title="Join Chat">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
       </button>
@@ -763,6 +763,7 @@ let allMsgs = [];
 /* SETUP */
 setupModal.style.display = "flex"; // Always show modal initially
 roomCodeInput.value = ""; // Ensure PIN is always blank on reload
+localStorage.removeItem("hp_room"); // Nuke any old saved PINs from previous versions
 
 document.querySelectorAll(".role-btn").forEach(btn => {
   if (role && btn.dataset.role === role) btn.classList.add("active");
