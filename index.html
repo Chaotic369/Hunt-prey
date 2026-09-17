@@ -652,6 +652,12 @@ function initChat() {
     render(msgs);
   });
 
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      markDeliveredAndSeen(allMsgs);
+    }
+  });
+
   const settingsRef = ref(db, `rooms/${roomCode}/settings`);
   onValue(settingsRef, snapshot => {
     const s = snapshot.val() || {};
@@ -757,30 +763,43 @@ function render(msgs) {
     }
     
     let reactionsHtml = "";
-    if (m.reactions) {
-      const emojis = Object.values(m.reactions);
-      if (emojis.length > 0) {
-        reactionsHtml = `<div class="reactions">${emojis.join("")}</div>`;
-      }
-    }
+        if (m.reactions) {
+          const emojis = Object.values(m.reactions);
+          if (emojis.length > 0) {
+            reactionsHtml = `<div class="reactions">${emojis.join("")}</div>`;
+          }
+        }
     
-    html += `
-      <div class="bubble ${side}" data-id="${m.id}" data-sender="${m.sender}">
-        ${replySnippet}
-        ${content}
-        <div class="time">${new Date(m.time).toLocaleTimeString([], {
-          hour: "2-digit", minute: "2-digit"
-        })}${m.edited ? ' • edited' : ''}</div>
-        ${reactionsHtml}
-      </div>`;
-  });
+        let ticksHtml = "";
+        if (side === "right") {
+          let tickColor = "rgba(255,255,255,0.6)";
+          let tickSvg = `<svg width="14" height="10" viewBox="0 0 16 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          if (m.seen) {
+            tickSvg = `<svg width="18" height="10" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="#53bdeb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L10 9.5L18 0.5" stroke="#53bdeb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          } else if (m.delivered) {
+            tickSvg = `<svg width="18" height="10" viewBox="0 0 20 11" fill="none"><path d="M1 5.5L5 9.5L11 1.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L10 9.5L18 0.5" stroke="${tickColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          }
+          ticksHtml = `<span class="ticks" style="display:inline-flex;vertical-align:middle;margin-left:3px;">${tickSvg}</span>`;
+        }
+    
+        html += `
+          <div class="bubble ${side}" data-id="${m.id}" data-sender="${m.sender}">
+            ${replySnippet}
+            ${content}
+            <div class="time">${new Date(m.time).toLocaleTimeString([], {
+              hour: "2-digit", minute: "2-digit"
+            })}${m.edited ? ' • edited' : ''}${ticksHtml}</div>
+            ${reactionsHtml}
+          </div>`;
+      });
   
-  messages.innerHTML = html;
-  attachVoice();
-  attachMedia(msgs);
-  attachLongPress();
-  messages.scrollTop = messages.scrollHeight;
-}
+      messages.innerHTML = html;
+      attachVoice();
+      attachMedia(msgs);
+      attachLongPress();
+      messages.scrollTop = messages.scrollHeight;
+      markDeliveredAndSeen(msgs);
+    }
 
 /* INSTAGRAM-STYLE ACTIONS */
 function setReplyTarget(msg) {
@@ -903,6 +922,20 @@ function attachLongPress() {
       isLongPress = true;
       openContextMenu(b.dataset.id, b.dataset.sender, e.clientX || startX, e.clientY || startY);
     });
+  });
+}
+
+function markDeliveredAndSeen(msgs) {
+  if (!roomCode || !role) return;
+  const isPageVisible = document.visibilityState === 'visible';
+  msgs.forEach(m => {
+    if (m.sender === role) return;
+    if (!m.delivered) {
+      update(ref(db, `rooms/${roomCode}/messages/${m.id}`), { delivered: true }).catch(console.error);
+    }
+    if (isPageVisible && !m.seen) {
+      update(ref(db, `rooms/${roomCode}/messages/${m.id}`), { seen: true }).catch(console.error);
+    }
   });
 }
 
