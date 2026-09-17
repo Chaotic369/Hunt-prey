@@ -886,9 +886,40 @@ async function uploadToSupabaseWithProgress(file, uniqueName) {
       } else reject(xhr.responseText);
     };
     xhr.onerror = () => { hideProgress(); reject('Network connection broken'); };
-    xhr.send(file);
-  });
-}
+        xhr.send(file);
+      });
+    }
+
+    // Temporary Storage for files > 50MB
+    async function uploadToAlternativeWithProgress(file) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('time', '24h'); // Retain for 24 hours
+        formData.append('fileToUpload', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://litterbox.catbox.moe/user/api.php', true);
+    
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            showProgress(pct);
+          }
+        };
+    
+        xhr.onload = () => {
+          hideProgress();
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.responseText); 
+          } else {
+            reject(xhr.responseText);
+          }
+        };
+        xhr.onerror = () => { hideProgress(); reject('Network connection broken'); };
+        xhr.send(formData);
+      });
+    }
 
 async function calculateStorage() {
   const usageText = document.getElementById('storageUsageText');
@@ -1769,12 +1800,19 @@ document.querySelectorAll('.attach-file').forEach(input => {
     const type = e.target.dataset.type;
     
     try {
-      showProgress(5);
-      const cleanName = f.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const uniquePath = `chat_${Date.now()}_${cleanName}`;
-      const url = await uploadToSupabaseWithProgress(f, uniquePath);
+          showProgress(5);
+          const cleanName = f.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const uniquePath = `chat_${Date.now()}_${cleanName}`;
       
-      const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+          let url;
+          // Conditionally route large files (> 50 MB)
+          if (f.size > 50 * 1024 * 1024) {
+            url = await uploadToAlternativeWithProgress(f);
+          } else {
+            url = await uploadToSupabaseWithProgress(f, uniquePath);
+          }
+      
+          const messagesRef = ref(db, `rooms/${roomCode}/messages`);
       await push(messagesRef, {
         type: "media",
         src: url,
