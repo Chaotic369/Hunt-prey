@@ -1297,8 +1297,10 @@ wallpaperInput.onchange = async e => {
   if (!f) return;
   try {
     showProgress(5);
-    const uniquePath = `wallpaper_${Date.now()}`;
-    const url = await uploadToSupabaseWithProgress(f, uniquePath);
+    // Compress wallpaper to max 1080p width so it loads instantly from Supabase
+    const compressed = await compressImage(f, 1080);
+    const uniquePath = `wallpaper_${Date.now()}.jpg`;
+    const url = await uploadToSupabaseWithProgress(compressed, uniquePath);
     await update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url });
     push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "set", sender: role, time: Date.now() });
   } catch (err) {
@@ -1774,6 +1776,25 @@ viewer.onclick = e => {
 };
 
 /* UTILS */
+async function compressImage(file, maxWidth = 1920) {
+  return new Promise(resolve => {
+    if (!file.type.startsWith('image/')) return resolve(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file);
+      }, 'image/jpeg', 0.8); // 80% quality
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 function format(s) {
   return "0:" + String(s).padStart(2, "0");
 }
