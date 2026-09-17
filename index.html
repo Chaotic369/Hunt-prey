@@ -1084,17 +1084,17 @@ joinBtn.onclick = async () => {
   
   joinBtn.style.opacity = "0.5";
   try {
-    const pinSnap = await get(ref(db, `rooms/2007/settings/pin`));
-    const validPin = pinSnap.exists() ? String(pinSnap.val()) : "2007";
+    const pinSnap = await get(ref(db, `rooms/${code}/settings/pin`));
+        const validPin = pinSnap.exists() ? String(pinSnap.val()) : code;
     
-    if (code !== validPin) {
-      pinErrorText.textContent = "Invalid PIN";
-      pinErrorText.style.opacity = "1";
-      joinBtn.style.opacity = "1";
-      return;
-    }
+        if (code !== validPin) {
+          pinErrorText.textContent = "Invalid PIN";
+          pinErrorText.style.opacity = "1";
+          joinBtn.style.opacity = "1";
+          return;
+        }
     
-    roomCode = "2007"; // Keeps your chat history attached to the same root room
+        roomCode = code; // Keeps your chat history attached to the entered room
     localStorage.setItem("hp_role", role);
     setupModal.style.display = "none";
     document.querySelector('.app').style.display = "flex";
@@ -1235,8 +1235,8 @@ function initChat() {
             chatTitle.textContent = theirName;
     
             if (document.activeElement !== pinUpdateInput) {
-              pinUpdateInput.value = s.pin || "2007";
-            }
+                          pinUpdateInput.value = s.pin || roomCode;
+                        }
     
             // Sync Color
         const activeColor = s.color || (themeIndex === 0 ? "#3797f0" : "#1d6fd1");
@@ -1389,14 +1389,14 @@ pinUpdateInput.onchange = async () => {
       await update(ref(db, `rooms/${roomCode}/settings`), { pin: val }).catch(console.error);
       await push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "pin", sender: role, time: Date.now() }).catch(console.error);
     } else {
-      try {
-        const pinSnap = await get(ref(db, `rooms/${roomCode}/settings/pin`));
-        pinUpdateInput.value = pinSnap.exists() ? String(pinSnap.val()) : "2007";
-      } catch (err) {
-        console.error(err);
-        pinUpdateInput.value = "2007";
-      }
-    }
+          try {
+            const pinSnap = await get(ref(db, `rooms/${roomCode}/settings/pin`));
+            pinUpdateInput.value = pinSnap.exists() ? String(pinSnap.val()) : roomCode;
+          } catch (err) {
+            console.error(err);
+            pinUpdateInput.value = roomCode;
+          }
+        }
   }
 };
 
