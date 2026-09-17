@@ -783,13 +783,14 @@ textarea{
           <div class="role-btn" data-role="prey">Prey</div>
         </div>
     <div class="pin-entry-container">
-          <input type="password" id="entryPinNode" name="otp_code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autocorrect="off" spellcheck="false" data-lpignore="true">
-          <button id="joinBtn" title="Join Chat">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-      </button>
+              <input type="password" id="entryPinNode" name="otp_code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autocorrect="off" spellcheck="false" data-lpignore="true">
+              <button id="joinBtn" title="Join Chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </div>
+        <div id="pinErrorText" style="color:#ef4444; font-size:12.5px; font-weight:500; margin-top:14px; text-align:center; opacity:0; transition:opacity 0.2s; letter-spacing:0.3px;"> </div>
+      </div>
     </div>
-  </div>
-</div>
 
 <!-- CROP MODAL -->
 <div class="modal" id="cropModal" style="display:none; z-index:4000; flex-direction:column; gap:20px;">
@@ -1034,6 +1035,7 @@ const closeViewer = document.getElementById("closeViewer");
 const setupModal = document.getElementById("setupModal");
 const roomCodeInput = document.getElementById("entryPinNode");
 const joinBtn = document.getElementById("joinBtn");
+const pinErrorText = document.getElementById("pinErrorText");
 const status = document.getElementById("status");
 const typingIndicator = document.getElementById("typingIndicator");
 const contextOverlay = document.getElementById("contextOverlay");
@@ -1066,13 +1068,17 @@ document.querySelectorAll(".role-btn").forEach(btn => {
     document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     role = btn.dataset.role;
+    pinErrorText.style.opacity = "0";
   };
 });
+
+roomCodeInput.oninput = () => pinErrorText.style.opacity = "0";
 
 joinBtn.onclick = async () => {
   const code = roomCodeInput.value.trim();
   if (!role) {
-    alert("Please select a role");
+    pinErrorText.textContent = "Please select a role";
+    pinErrorText.style.opacity = "1";
     return;
   }
   
@@ -1082,7 +1088,8 @@ joinBtn.onclick = async () => {
     const validPin = pinSnap.exists() ? String(pinSnap.val()) : "2007";
     
     if (code !== validPin) {
-      alert("Invalid PIN");
+      pinErrorText.textContent = "Invalid PIN";
+      pinErrorText.style.opacity = "1";
       joinBtn.style.opacity = "1";
       return;
     }
@@ -1094,7 +1101,8 @@ joinBtn.onclick = async () => {
     initChat();
   } catch(err) {
     console.error(err);
-    alert("Network error checking PIN");
+    pinErrorText.textContent = "Network error checking PIN";
+    pinErrorText.style.opacity = "1";
     joinBtn.style.opacity = "1";
   }
 };
