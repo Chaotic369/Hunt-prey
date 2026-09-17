@@ -408,6 +408,12 @@ textarea{
 }
 .viewer img,.viewer video{max-width:100%;max-height:100%}
 
+#progressBar {
+  position: fixed; top: 0; left: 0; height: 3px; background: var(--right); z-index: 50000;
+  width: 0%; display: none; box-shadow: none; border: none; transition: width 0.1s linear;
+}
+#progressBar.active { display: block; }
+
 /* MODAL */
 .modal{
   position:fixed;inset:0;background:rgba(0,0,0,.8);
@@ -609,6 +615,7 @@ textarea{
 </head>
 
 <body class="theme-0">
+<div id="progressBar"></div>
 <div class="app">
 
 <div class="header">
@@ -685,8 +692,14 @@ textarea{
   <div class="settings-popup">
     <div class="popup-title">Settings</div>
 
-    <div class="popup-row">
-          <span class="popup-row-label">Color</span>
+        <div class="popup-row">
+          <span class="popup-row-label">Storage</span>
+          <div id="storageUsageText" style="flex:1; font-size:13px; color:var(--text); opacity:0.8; font-family:monospace;">Calculating...</div>
+          <button class="action-mini-btn" id="refreshStorageBtn" style="background:var(--border); color:var(--text); border:none; border-radius:8px; cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center;" title="Refresh Storage"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
+        </div>
+
+        <div class="popup-row">
+              <span class="popup-row-label">Color</span>
           <div class="color-preview-dot" id="colorPreviewDot"></div>
           <input type="color" id="colorSlider" value="#3797f0">
         </div>
@@ -727,6 +740,7 @@ textarea{
 </div>
 
 <!-- INSTAGRAM CONTEXT MENU -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div class="context-overlay" id="contextOverlay">
   <div class="context-menu">
     <div class="ig-reaction-capsule" id="contextEmojis">
@@ -765,7 +779,6 @@ textarea{
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, push, onValue, get, set, remove, onDisconnect, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
 // Firebase config
 const firebaseConfig = {
@@ -781,7 +794,71 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app);
+
+/* SUPABASE CONFIG */
+const SUPABASE_URL = 'https://fxnrugbvbfyamtrfmjea.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_FnWYWD7C9Tvc1YNtVYQ1dA_aPwVsCmE';
+const BUCKET_NAME = 'docs';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $progress = document.getElementById('progressBar');
+function showProgress(pct) {
+  $progress.style.width = pct + '%';
+  $progress.classList.add('active');
+}
+function hideProgress() {
+  $progress.style.width = '100%';
+  setTimeout(() => { $progress.classList.remove('active'); $progress.style.width = '0%'; }, 200);
+}
+
+async function uploadToSupabaseWithProgress(file, uniqueName) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${uniqueName}`, true);
+    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+    xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        showProgress(pct);
+      }
+    };
+    
+    xhr.onload = () => {
+      hideProgress();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const { data } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(uniqueName);
+        resolve(data.publicUrl);
+      } else reject(xhr.responseText);
+    };
+    xhr.onerror = () => { hideProgress(); reject('Network connection broken'); };
+    xhr.send(file);
+  });
+}
+
+async function calculateStorage() {
+  const usageText = document.getElementById('storageUsageText');
+  if(!usageText) return;
+  usageText.textContent = "Calculating...";
+  try {
+    let totalBytes = 0;
+    let offset = 0;
+    while (true) {
+      const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).list('', { limit: 1000, offset });
+      if (error || !data || data.length === 0) break;
+      data.forEach(f => totalBytes += (f.metadata?.size || 0));
+      if (data.length < 1000) break;
+      offset += 1000;
+    }
+    const mb = (totalBytes / (1024 * 1024)).toFixed(2);
+    usageText.textContent = `${mb} MB used`;
+  } catch(e) {
+    console.error(e);
+    usageText.textContent = "Error";
+  }
+}
 
 /* STATE */
 let role = localStorage.getItem("hp_role") || null;
@@ -1011,9 +1088,9 @@ myAvatarInput.onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try {
-    const fileRef = storageRef(storage, `rooms/${roomCode}/avatar_${role}_${Date.now()}`);
-    await uploadBytes(fileRef, f);
-    const url = await getDownloadURL(fileRef);
+    showProgress(5);
+    const uniquePath = `avatar_${role}_${Date.now()}`;
+    const url = await uploadToSupabaseWithProgress(f, uniquePath);
     await update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: url });
   } catch (err) {
     console.error(err);
@@ -1055,7 +1132,11 @@ pinUpdateInput.onchange = async () => {
 };
 
 /* SETTINGS MODAL */
-settingsBtn.onclick = () => settingsModal.style.display = "flex";
+settingsBtn.onclick = () => {
+  settingsModal.style.display = "flex";
+  calculateStorage();
+};
+document.getElementById('refreshStorageBtn').onclick = calculateStorage;
 closeSettingsBtn.onclick = () => settingsModal.style.display = "none";
 settingsModal.onclick = (e) => {
   if (e.target === settingsModal) settingsModal.style.display = "none";
@@ -1080,17 +1161,17 @@ wallpaperInput.onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try {
-    const fileRef = storageRef(storage, `rooms/${roomCode}/wallpaper_${Date.now()}`);
-        await uploadBytes(fileRef, f);
-        const url = await getDownloadURL(fileRef);
-        await update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url });
-        push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "set", sender: role, time: Date.now() });
-      } catch (err) {
-        console.error(err);
-        alert("Wallpaper upload failed");
-      }
-      wallpaperInput.value = "";
-    };
+    showProgress(5);
+    const uniquePath = `wallpaper_${Date.now()}`;
+    const url = await uploadToSupabaseWithProgress(f, uniquePath);
+    await update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url });
+    push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "set", sender: role, time: Date.now() });
+  } catch (err) {
+    console.error(err);
+    alert("Wallpaper upload failed");
+  }
+  wallpaperInput.value = "";
+};
     wallpaperRemoveBtn.onclick = () => {
       if (confirm("Are you sure you want to remove the wallpaper?")) {
         update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
@@ -1441,6 +1522,18 @@ document.getElementById("contextSave").onclick = async () => {
 
 document.getElementById("contextUnsend").onclick = async () => {
   if (confirm("Unsend this message?")) {
+    const msg = allMsgs.find(m => m.id === activeMessageId);
+    if (msg && msg.storagePath) {
+      await supabaseClient.storage.from(BUCKET_NAME).remove([msg.storagePath]).catch(console.error);
+    } else if (msg && (msg.type === 'media' || msg.type === 'voice') && msg.src) {
+      try {
+        const parts = msg.src.split(`/public/${BUCKET_NAME}/`);
+        if (parts.length > 1) {
+          const path = decodeURIComponent(parts[1]);
+          await supabaseClient.storage.from(BUCKET_NAME).remove([path]).catch(console.error);
+        }
+      } catch(e) { console.error(e); }
+    }
     await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`)).catch(console.error);
     contextOverlay.style.display = "none";
   }
@@ -1598,9 +1691,10 @@ media.onchange = async e => {
   if (!f) return;
   
   try {
-    const fileRef = storageRef(storage, `rooms/${roomCode}/${Date.now()}_${f.name}`);
-    await uploadBytes(fileRef, f);
-    const url = await getDownloadURL(fileRef);
+    showProgress(5);
+    const cleanName = f.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uniquePath = `chat_${Date.now()}_${cleanName}`;
+    const url = await uploadToSupabaseWithProgress(f, uniquePath);
     
     const messagesRef = ref(db, `rooms/${roomCode}/messages`);
     await push(messagesRef, {
@@ -1608,7 +1702,8 @@ media.onchange = async e => {
       src: url,
       mediaType: f.type.startsWith("image") ? "image" : "video",
       sender: role,
-      time: Date.now()
+      time: Date.now(),
+      storagePath: uniquePath
     });
   } catch (error) {
     console.error("Upload error:", error);
@@ -1696,30 +1791,31 @@ async function startVoice() {
       }
 
       recHintText.textContent = "Sending…";
-      recCancelBtn.style.display = 'none';
-      const blob = new Blob(chunks, { type: "audio/webm" });
-      try {
-        const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
-        await uploadBytes(fileRef, blob);
-        const url = await getDownloadURL(fileRef);
+            recCancelBtn.style.display = 'none';
+            const blob = new Blob(chunks, { type: "audio/webm" });
+            try {
+              showProgress(5);
+              const uniquePath = `voice_${Date.now()}.webm`;
+              const url = await uploadToSupabaseWithProgress(blob, uniquePath);
 
-        const messagesRef = ref(db, `rooms/${roomCode}/messages`);
-        await push(messagesRef, {
-          type: "voice",
-          src: url,
-          duration: duration,
-          waveform: recWaveformSamples.length ? recWaveformSamples.slice(0, 40) : null,
-          sender: role,
-          time: Date.now()
-        });
-      } catch (error) {
-        console.error("Voice upload error:", error);
-        alert("Failed to upload voice message");
-      } finally {
-        recCancelBtn.style.display = '';
-        resetRecordingUI();
-      }
-    };
+              const messagesRef = ref(db, `rooms/${roomCode}/messages`);
+              await push(messagesRef, {
+                type: "voice",
+                src: url,
+                duration: duration,
+                waveform: recWaveformSamples.length ? recWaveformSamples.slice(0, 40) : null,
+                sender: role,
+                time: Date.now(),
+                storagePath: uniquePath
+              });
+            } catch (error) {
+              console.error("Voice upload error:", error);
+              alert("Failed to upload voice message");
+            } finally {
+              recCancelBtn.style.display = '';
+              resetRecordingUI();
+            }
+          };
 
     recorder.start();
     recording = true;
