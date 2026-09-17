@@ -792,10 +792,12 @@ function initChat() {
         document.documentElement.style.setProperty('--right', activeColor);
         document.body.style.setProperty('--right', activeColor);
         colorSlider.value = activeColor;
+        colorPreviewDot.style.background = activeColor;
     
     // Sync Wallpaper
         if (s.wallpaper !== undefined) {
           document.querySelector('.app').style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
+          wallpaperPreview.style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
         }
   });
 }
@@ -821,7 +823,10 @@ settingsBtn.onclick = () => settingsModal.style.display = "flex";
 closeSettingsBtn.onclick = () => settingsModal.style.display = "none";
 
 const colorSlider = document.getElementById("colorSlider");
+const colorPreviewDot = document.getElementById("colorPreviewDot");
+const wallpaperPreview = document.getElementById("wallpaperPreview");
 colorSlider.oninput = () => {
+  colorPreviewDot.style.background = colorSlider.value;
   update(ref(db, `rooms/${roomCode}/settings`), { color: colorSlider.value }).catch(console.error);
 };
 
