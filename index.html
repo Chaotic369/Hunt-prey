@@ -787,11 +787,15 @@ document.querySelectorAll(".role-btn").forEach(btn => {
 
 joinBtn.onclick = () => {
   const code = roomCodeInput.value.trim();
-  if (!role || !code) {
-    alert("Please select a role and enter a room code");
+  if (!role) {
+    alert("Please select a role");
     return;
   }
-  roomCode = code;
+  if (code !== "2007") {
+    alert("Invalid PIN");
+    return;
+  }
+  roomCode = "2007";
   localStorage.setItem("hp_role", role);
   setupModal.style.display = "none";
   document.querySelector('.app').style.display = "flex";
