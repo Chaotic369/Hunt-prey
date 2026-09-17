@@ -169,6 +169,16 @@ body{
   z-index:5;
 }
 
+.system-msg{
+  text-align:center;
+  font-size:11.5px;
+  color:var(--text);
+  opacity:0.55;
+  margin:12px 0;
+  font-weight:500;
+  user-select:none;
+}
+
 /* INSTAGRAM STYLE CONTEXT OVERLAY & POPUP */
 .context-overlay{
   position:fixed;
@@ -996,11 +1006,15 @@ myAvatarRemoveBtn.onclick = () => {
 };
 
 myNameInput.onchange = () => {
-  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${role}`]: myNameInput.value.trim() }).catch(console.error);
+  const val = myNameInput.value.trim();
+  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${role}`]: val }).catch(console.error);
+  push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "name", target: role, value: val, sender: role, time: Date.now() });
 };
 partnerNameInput.onchange = () => {
+  const val = partnerNameInput.value.trim();
   const otherRole = role === "hunter" ? "prey" : "hunter";
-  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${otherRole}`]: partnerNameInput.value.trim() }).catch(console.error);
+  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${otherRole}`]: val }).catch(console.error);
+  push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "name", target: otherRole, value: val, sender: role, time: Date.now() });
 };
 
 /* SETTINGS MODAL */
@@ -1017,6 +1031,9 @@ colorSlider.oninput = () => {
   colorPreviewDot.style.background = colorSlider.value;
   update(ref(db, `rooms/${roomCode}/settings`), { color: colorSlider.value }).catch(console.error);
 };
+colorSlider.onchange = () => {
+  push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "color", sender: role, time: Date.now() });
+};
 
 const wallpaperBtn = document.getElementById("wallpaperBtn");
 const wallpaperInput = document.getElementById("wallpaperInput");
@@ -1027,18 +1044,20 @@ wallpaperInput.onchange = async e => {
   if (!f) return;
   try {
     const fileRef = storageRef(storage, `rooms/${roomCode}/wallpaper_${Date.now()}`);
-    await uploadBytes(fileRef, f);
-    const url = await getDownloadURL(fileRef);
-    await update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url });
-  } catch (err) {
-    console.error(err);
-    alert("Wallpaper upload failed");
-  }
-  wallpaperInput.value = "";
-};
-wallpaperRemoveBtn.onclick = () => {
-  update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
-};
+        await uploadBytes(fileRef, f);
+        const url = await getDownloadURL(fileRef);
+        await update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url });
+        push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "set", sender: role, time: Date.now() });
+      } catch (err) {
+        console.error(err);
+        alert("Wallpaper upload failed");
+      }
+      wallpaperInput.value = "";
+    };
+    wallpaperRemoveBtn.onclick = () => {
+      update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
+      push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "removed", sender: role, time: Date.now() });
+    };
 
 /* RENDER */
 function render(msgs) {
@@ -1047,6 +1066,24 @@ function render(msgs) {
   msgs.sort((a, b) => a.time - b.time);
   
   msgs.forEach((m, i) => {
+    if (m.type === "system") {
+      let sysText = "";
+      const isMe = m.sender === role;
+      const senderDisplay = isMe ? "You" : (m.sender.charAt(0).toUpperCase() + m.sender.slice(1));
+      
+      if (m.action === "wallpaper") {
+        sysText = m.value === "set" ? `${senderDisplay} changed the chat wallpaper.` : `${senderDisplay} removed the chat wallpaper.`;
+      } else if (m.action === "color") {
+        sysText = `${senderDisplay} changed the chat theme.`;
+      } else if (m.action === "name") {
+        const targetIsMe = m.target === role;
+        const targetDisplay = targetIsMe ? (isMe ? "yourself" : "you") : (isMe ? (m.target.charAt(0).toUpperCase() + m.target.slice(1)) : "themselves");
+        sysText = `${senderDisplay} named ${targetDisplay} ${m.value || m.target}.`;
+      }
+      html += `<div class="system-msg">${escapeHtml(sysText)}</div>`;
+      return;
+    }
+
     const side = m.sender === role ? "right" : "left";
     let content = "";
     
