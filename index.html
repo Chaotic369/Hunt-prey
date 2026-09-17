@@ -540,6 +540,19 @@ textarea{
   font-weight:600;
 }
 .wallpaper-choose-btn:active{background:var(--border);}
+.wallpaper-remove-btn{
+  width:26px;height:26px;
+  border-radius:50%;
+  background:var(--panel);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  flex-shrink:0;
+  color:var(--text);
+  opacity:.7;
+}
+.wallpaper-remove-btn:active{opacity:1;background:var(--border);}
 .popup-done-btn{
   width:100%;
   padding:10px;
@@ -639,11 +652,12 @@ textarea{
     </div>
 
     <div class="popup-row">
-      <span class="popup-row-label">Wallpaper</span>
-      <input type="file" hidden id="wallpaperInput" accept="image/*">
-      <div class="wallpaper-preview" id="wallpaperPreview"></div>
-      <button class="wallpaper-choose-btn" id="wallpaperBtn">Choose</button>
-    </div>
+          <span class="popup-row-label">Wallpaper</span>
+          <input type="file" hidden id="wallpaperInput" accept="image/*">
+          <div class="wallpaper-preview" id="wallpaperPreview"></div>
+          <button class="wallpaper-choose-btn" id="wallpaperBtn">Choose</button>
+          <div class="wallpaper-remove-btn" id="wallpaperRemoveBtn" title="Remove wallpaper" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+        </div>
 
     <button class="popup-done-btn" id="closeSettingsBtn">Done</button>
   </div>
@@ -866,6 +880,7 @@ function initChat() {
         if (s.wallpaper !== undefined) {
           document.querySelector('.app').style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
           wallpaperPreview.style.backgroundImage = s.wallpaper ? `url('${s.wallpaper}')` : 'none';
+          wallpaperRemoveBtn.style.display = s.wallpaper ? '' : 'none';
         }
   });
 }
@@ -903,6 +918,7 @@ colorSlider.oninput = () => {
 
 const wallpaperBtn = document.getElementById("wallpaperBtn");
 const wallpaperInput = document.getElementById("wallpaperInput");
+const wallpaperRemoveBtn = document.getElementById("wallpaperRemoveBtn");
 wallpaperBtn.onclick = () => wallpaperInput.click();
 wallpaperInput.onchange = async e => {
   const f = e.target.files[0];
@@ -917,6 +933,9 @@ wallpaperInput.onchange = async e => {
     alert("Wallpaper upload failed");
   }
   wallpaperInput.value = "";
+};
+wallpaperRemoveBtn.onclick = () => {
+  update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
 };
 
 /* RENDER */
