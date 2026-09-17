@@ -842,11 +842,12 @@ bannerClose.onclick = () => {
 };
 
 let longPressTouchDevice = false;
-function attachLongPress() {
+function attachLongPress(targetEls) {
   let pressTimer;
   let lastTap = 0;
 
-  document.querySelectorAll('.bubble').forEach(b => {
+  const els = targetEls && targetEls.length ? targetEls : document.querySelectorAll('.bubble');
+  els.forEach(b => {
     if (b.dataset.longpressAttached) return;
     b.dataset.longpressAttached = "1";
     let startX = 0, startY = 0, currentX = 0;
@@ -1022,14 +1023,16 @@ document.getElementById("contextUnsend").onclick = async () => {
 };
 
       /* VOICE */
-function attachVoice() {
-  document.querySelectorAll(".play").forEach(btn => {
-    const i = btn.dataset.i;
-    const audio = document.getElementById("audio-" + i);
-    const bar = document.getElementById("bar-" + i);
-    if (!audio) return;
+      function attachVoice() {
+        document.querySelectorAll(".play").forEach(btn => {
+          if (btn.dataset.voiceAttached) return;
+          btn.dataset.voiceAttached = "1";
+          const i = btn.dataset.i;
+          const audio = document.getElementById("audio-" + i);
+          const bar = document.getElementById("bar-" + i);
+          if (!audio) return;
     
-    btn.onclick = () => {
+          btn.onclick = () => {
       if (audio.paused) {
         audio.play();
         btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
@@ -1049,6 +1052,8 @@ function attachVoice() {
 /* MEDIA */
 function attachMedia(msgs) {
   document.querySelectorAll(".media").forEach(el => {
+    if (el.dataset.mediaAttached) return;
+    el.dataset.mediaAttached = "1";
     el.onclick = () => {
       if (isLongPress) return;
       const m = msgs[el.dataset.i];
