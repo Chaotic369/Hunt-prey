@@ -640,8 +640,8 @@ textarea{
       <div class="role-btn" data-role="prey">Prey</div>
     </div>
     <div class="pin-entry-container">
-      <input type="text" id="roomCode" placeholder="PIN" inputmode="numeric" autocomplete="off">
-      <button id="joinBtn" title="Join Chat">
+          <input type="text" id="roomCode" inputmode="numeric" autocomplete="off">
+          <button id="joinBtn" title="Join Chat">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
       </button>
     </div>
@@ -763,7 +763,7 @@ let allMsgs = [];
 
 /* SETUP */
 setupModal.style.display = "flex"; // Always show modal initially
-roomCodeInput.value = localStorage.getItem("hp_room") || ""; // Autofill previous room code
+roomCodeInput.value = ""; // Ensure PIN is always blank on reload
 
 document.querySelectorAll(".role-btn").forEach(btn => {
   if (role && btn.dataset.role === role) btn.classList.add("active");
