@@ -705,13 +705,18 @@ textarea{
         </div>
 
         <div class="popup-row">
-          <span class="popup-row-label">Their Name</span>
-          <input type="text" id="partnerNameInput" class="settings-text-input" placeholder="Name...">
-        </div>
+              <span class="popup-row-label">Their Name</span>
+              <input type="text" id="partnerNameInput" class="settings-text-input" placeholder="Name...">
+            </div>
+    
+            <div class="popup-row">
+              <span class="popup-row-label">Chat PIN</span>
+              <input type="text" id="pinUpdateInput" class="settings-text-input" inputmode="numeric" placeholder="2007">
+            </div>
 
-        <div class="popup-row">
-              <span class="popup-row-label">Wallpaper</span>
-              <input type="file" hidden id="wallpaperInput" accept="image/*">
+            <div class="popup-row">
+                  <span class="popup-row-label">Wallpaper</span>
+                  <input type="file" hidden id="wallpaperInput" accept="image/*">
           <div class="wallpaper-preview" id="wallpaperPreview"></div>
           <button class="wallpaper-choose-btn" id="wallpaperBtn">Choose</button>
           <div class="wallpaper-remove-btn" id="wallpaperRemoveBtn" title="Remove wallpaper" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
@@ -802,13 +807,7 @@ const myAvatarBtn = document.getElementById("myAvatarBtn");
 const myAvatarRemoveBtn = document.getElementById("myAvatarRemoveBtn");
 const myNameInput = document.getElementById("myNameInput");
 const partnerNameInput = document.getElementById("partnerNameInput");
-const bannerTitle = document.getElementById("bannerTitle");
-const bannerDesc = document.getElementById("bannerDesc");
-const bannerClose = document.getElementById("bannerClose");
-
-const settingsBtn = document.getElementById("settingsBtn");
-const settingsModal = document.getElementById("settingsModal");
-const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const pinUpdateInput = document.getElementById("pinUpdateInput");
 
 let activeMessageId = null;
 let isLongPress = false;
@@ -831,21 +830,34 @@ document.querySelectorAll(".role-btn").forEach(btn => {
   };
 });
 
-joinBtn.onclick = () => {
+joinBtn.onclick = async () => {
   const code = roomCodeInput.value.trim();
   if (!role) {
     alert("Please select a role");
     return;
   }
-  if (code !== "2007") {
-    alert("Invalid PIN");
-    return;
+  
+  joinBtn.style.opacity = "0.5";
+  try {
+    const pinSnap = await get(ref(db, `rooms/2007/settings/pin`));
+    const validPin = pinSnap.exists() ? String(pinSnap.val()) : "2007";
+    
+    if (code !== validPin) {
+      alert("Invalid PIN");
+      joinBtn.style.opacity = "1";
+      return;
+    }
+    
+    roomCode = "2007"; // Keeps your chat history attached to the same root room
+    localStorage.setItem("hp_role", role);
+    setupModal.style.display = "none";
+    document.querySelector('.app').style.display = "flex";
+    initChat();
+  } catch(err) {
+    console.error(err);
+    alert("Network error checking PIN");
+    joinBtn.style.opacity = "1";
   }
-  roomCode = "2007";
-  localStorage.setItem("hp_role", role);
-  setupModal.style.display = "none";
-  document.querySelector('.app').style.display = "flex";
-  initChat();
 };
 
 /* THEME */
@@ -966,10 +978,14 @@ function initChat() {
         const theirName = (s.names && s.names[otherRole]) || theirDefaultName;
     
         if (document.activeElement !== myNameInput) myNameInput.value = myName;
-        if (document.activeElement !== partnerNameInput) partnerNameInput.value = theirName;
-        chatTitle.textContent = theirName;
+            if (document.activeElement !== partnerNameInput) partnerNameInput.value = theirName;
+            chatTitle.textContent = theirName;
     
-        // Sync Color
+            if (document.activeElement !== pinUpdateInput) {
+              pinUpdateInput.value = s.pin || "2007";
+            }
+    
+            // Sync Color
         const activeColor = s.color || (themeIndex === 0 ? "#3797f0" : "#1d6fd1");
         document.documentElement.style.setProperty('--right', activeColor);
         document.body.style.setProperty('--right', activeColor);
@@ -1015,6 +1031,13 @@ partnerNameInput.onchange = () => {
   const otherRole = role === "hunter" ? "prey" : "hunter";
   update(ref(db, `rooms/${roomCode}/settings`), { [`names/${otherRole}`]: val }).catch(console.error);
   push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "name", target: otherRole, value: val, sender: role, time: Date.now() });
+};
+pinUpdateInput.onchange = () => {
+  const val = pinUpdateInput.value.trim();
+  if(val) {
+    update(ref(db, `rooms/${roomCode}/settings`), { pin: val }).catch(console.error);
+    push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "pin", sender: role, time: Date.now() });
+  }
 };
 
 /* SETTINGS MODAL */
@@ -1076,11 +1099,13 @@ function render(msgs) {
       } else if (m.action === "color") {
         sysText = `${senderDisplay} changed the chat theme.`;
       } else if (m.action === "name") {
-        const targetIsMe = m.target === role;
-        const targetDisplay = targetIsMe ? (isMe ? "yourself" : "you") : (isMe ? (m.target.charAt(0).toUpperCase() + m.target.slice(1)) : "themselves");
-        sysText = `${senderDisplay} named ${targetDisplay} ${m.value || m.target}.`;
-      }
-      html += `<div class="system-msg">${escapeHtml(sysText)}</div>`;
+              const targetIsMe = m.target === role;
+              const targetDisplay = targetIsMe ? (isMe ? "yourself" : "you") : (isMe ? (m.target.charAt(0).toUpperCase() + m.target.slice(1)) : "themselves");
+              sysText = `${senderDisplay} named ${targetDisplay} ${m.value || m.target}.`;
+            } else if (m.action === "pin") {
+              sysText = `${senderDisplay} changed the chat PIN.`;
+            }
+            html += `<div class="system-msg">${escapeHtml(sysText)}</div>`;
       return;
     }
 
