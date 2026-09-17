@@ -1088,8 +1088,10 @@ wallpaperInput.onchange = async e => {
       wallpaperInput.value = "";
     };
     wallpaperRemoveBtn.onclick = () => {
-      update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
-      push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "removed", sender: role, time: Date.now() });
+      if (confirm("Are you sure you want to remove the wallpaper?")) {
+        update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: "" }).catch(console.error);
+        push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "wallpaper", value: "removed", sender: role, time: Date.now() });
+      }
     };
 
 /* RENDER */
