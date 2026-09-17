@@ -421,7 +421,7 @@ textarea{
   width:100%;
   padding:12px 16px;
   background:var(--bg);
-  border:1px solid var(--left);
+  border:none;
   border-radius:8px;
   color:var(--text);
   font-size:18px;
@@ -433,8 +433,8 @@ textarea{
 .modal-content button{
   width:48px;
   height:48px;
-  background:var(--right);
-  color:#fff;
+  background:var(--left);
+  color:var(--text);
   border:none;
   border-radius:8px;
   cursor:pointer;
@@ -453,15 +453,14 @@ textarea{
   flex:1;
   padding:16px;
   background:var(--left);
-  border:2px solid transparent;
+  border:none;
   border-radius:12px;
   cursor:pointer;
   text-align:center;
   font-size:14px;
 }
 .role-btn.active{
-  border-color:var(--right);
-  background:var(--right);
+  background:var(--border);
 }
 
 /* SETTINGS MODAL */
