@@ -784,6 +784,39 @@ joinBtn.onclick = () => {
 /* THEME */
 let currentWallpaperUrl = "";
 
+function shiftHexColor(hex, amount, direction) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const num = parseInt(hex, 16);
+  let r = (num >> 16) & 255;
+  let g = (num >> 8) & 255;
+  let b = num & 255;
+  if (direction === 'darken') {
+    r = Math.max(0, Math.floor(r * (1 - amount)));
+    g = Math.max(0, Math.floor(g * (1 - amount)));
+    b = Math.max(0, Math.floor(b * (1 - amount)));
+  } else {
+    r = Math.min(255, Math.floor(r + (255 - r) * amount));
+    g = Math.min(255, Math.floor(g + (255 - g) * amount));
+    b = Math.min(255, Math.floor(b + (255 - b) * amount));
+  }
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+const THEME_BASE_COLORS = {
+  0: { panel: "#121212", left: "#262626", sheet: "#262626" },
+  1: { panel: "#f5f5f5", left: "#e5e5e5", sheet: "#ffffff" }
+};
+const THEME_TINT_AMOUNT = 0.12;
+
+function applyThemeColorTint() {
+  const base = THEME_BASE_COLORS[themeIndex];
+  const direction = themeIndex === 0 ? 'darken' : 'lighten';
+  document.body.style.setProperty('--panel', shiftHexColor(base.panel, THEME_TINT_AMOUNT, direction));
+  document.body.style.setProperty('--left', shiftHexColor(base.left, THEME_TINT_AMOUNT, direction));
+  document.body.style.setProperty('--sheet', shiftHexColor(base.sheet, THEME_TINT_AMOUNT, direction));
+}
+
 function applyWallpaperWithThemeTint(wallpaperUrl) {
   currentWallpaperUrl = wallpaperUrl || "";
   const appEl = document.querySelector('.app');
@@ -808,8 +841,10 @@ function applyTheme() {
   } else {
     themeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
   }
-  applyWallpaperWithThemeTint(currentWallpaperUrl);
-}
+  applyThemeColorTint();
+    applyWallpaperWithThemeTint(currentWallpaperUrl);
+  }
+  What
 document.getElementById("theme").onclick = async () => {
   themeIndex = (themeIndex + 1) % 2;
   applyTheme();
