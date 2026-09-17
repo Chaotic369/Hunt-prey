@@ -747,10 +747,14 @@ textarea{
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           </button>
           <button class="ig-action-item" id="contextEdit" style="display:none;">
-            <span>Edit</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-          <button class="ig-action-item danger" id="contextUnsend" style="display:none;">
+                      <span>Edit</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button class="ig-action-item" id="contextSave" style="display:none;">
+                      <span id="contextSaveText">Save</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
+                    <button class="ig-action-item danger" id="contextUnsend" style="display:none;">
             <span>Unsend</span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
@@ -1241,11 +1245,11 @@ function attachLongPress(targetEls) {
     let startX = 0, startY = 0, currentX = 0;
 
     const startPress = (e) => {
-      if (e.type === 'touchstart') longPressTouchDevice = true;
-      if (e.type === 'mousedown' && longPressTouchDevice) return; // Prevent ghost clicks
-      if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
+            if (e.type === 'touchstart') longPressTouchDevice = true;
+            if (e.type === 'mousedown' && longPressTouchDevice) return; // Prevent ghost clicks
+            if (e.target.closest('.play') || e.target.closest('.progress')) return;
 
-      isLongPress = false;
+            isLongPress = false;
       const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
       const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
       startX = clientX;
@@ -1271,10 +1275,10 @@ function attachLongPress(targetEls) {
         };
 
         const endPress = (e) => {
-              if (e.type === 'mouseup' && longPressTouchDevice) return;
-              if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media') || e.target.closest('.reactions')) return;
+                        if (e.type === 'mouseup' && longPressTouchDevice) return;
+                        if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.reactions')) return;
 
-              clearTimeout(pressTimer);
+                        clearTimeout(pressTimer);
               const deltaX = currentX - startX;
               b.style.transform = '';
 
@@ -1313,9 +1317,9 @@ function attachLongPress(targetEls) {
         b.addEventListener('touchend', endPress);
 
         b.addEventListener('contextmenu', e => {
-          if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
-          e.preventDefault();
-          isLongPress = true;
+                  if (e.target.closest('.play') || e.target.closest('.progress')) return;
+                  e.preventDefault();
+                  isLongPress = true;
           openContextMenu(b.dataset.id, b.dataset.sender, e.clientX || startX, e.clientY || startY);
         });
       });
@@ -1351,9 +1355,17 @@ function openContextMenu(msgId, sender, x, y) {
   const isMine = sender === role;
   
   document.getElementById("contextUnsend").style.display = isMine ? "flex" : "none";
-  document.getElementById("contextEdit").style.display = (isMine && msg && msg.type === "text") ? "flex" : "none";
+    document.getElementById("contextEdit").style.display = (isMine && msg && msg.type === "text") ? "flex" : "none";
   
-  contextOverlay.style.display = "block";
+    const saveBtn = document.getElementById("contextSave");
+    if (msg && msg.type === "media") {
+      saveBtn.style.display = "flex";
+      document.getElementById("contextSaveText").textContent = msg.mediaType === "image" ? "Save Image" : "Save Video";
+    } else {
+      saveBtn.style.display = "none";
+    }
+  
+    contextOverlay.style.display = "block";
   const menu = document.querySelector('.context-menu');
   
   requestAnimationFrame(() => {
@@ -1401,6 +1413,30 @@ document.getElementById("contextCopy").onclick = () => {
 document.getElementById("contextEdit").onclick = () => {
   const msg = allMsgs.find(m => m.id === activeMessageId);
   if (msg) setEditTarget(msg);
+};
+
+document.getElementById("contextSave").onclick = async () => {
+  const msg = allMsgs.find(m => m.id === activeMessageId);
+  if (msg && msg.type === "media") {
+    try {
+      const resp = await fetch(msg.src);
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = msg.mediaType === "image" ? `image_${Date.now()}.jpg` : `video_${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error("Save failed", err);
+      // Fallback if CORS blocks the fetch
+      window.open(msg.src, '_blank');
+    }
+  }
+  contextOverlay.style.display = "none";
 };
 
 document.getElementById("contextUnsend").onclick = async () => {
