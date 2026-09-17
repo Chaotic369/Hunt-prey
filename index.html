@@ -570,6 +570,18 @@ textarea{
   opacity:.7;
 }
 .wallpaper-remove-btn:active{opacity:1;background:var(--border);}
+.settings-text-input{
+  flex:1;
+  width:100%;
+  padding:8px 12px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-size:13px;
+  outline:none;
+}
+.settings-text-input:focus{border-color:var(--right);}
 .popup-done-btn{
   width:100%;
   padding:10px;
@@ -591,10 +603,9 @@ textarea{
 
 <div class="header">
   <div class="ig-user-info">
-    <div class="ig-avatar" id="partnerAvatar" title="Change Avatar">
+    <div class="ig-avatar" id="partnerAvatar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
     </div>
-    <input type="file" hidden id="avatarInput" accept="image/*">
     <div class="ig-meta">
       <h1 id="chatTitle">Direct</h1>
       <div class="ig-substatus">
@@ -665,14 +676,32 @@ textarea{
     <div class="popup-title">Settings</div>
 
     <div class="popup-row">
-      <span class="popup-row-label">Color</span>
-      <div class="color-preview-dot" id="colorPreviewDot"></div>
-      <input type="color" id="colorSlider" value="#3797f0">
-    </div>
+          <span class="popup-row-label">Color</span>
+          <div class="color-preview-dot" id="colorPreviewDot"></div>
+          <input type="color" id="colorSlider" value="#3797f0">
+        </div>
 
-    <div class="popup-row">
-          <span class="popup-row-label">Wallpaper</span>
-          <input type="file" hidden id="wallpaperInput" accept="image/*">
+        <div class="popup-row">
+          <span class="popup-row-label">My Avatar</span>
+          <input type="file" hidden id="myAvatarInput" accept="image/*">
+          <div class="wallpaper-preview" id="myAvatarPreview"></div>
+          <button class="wallpaper-choose-btn" id="myAvatarBtn">Choose</button>
+          <div class="wallpaper-remove-btn" id="myAvatarRemoveBtn" title="Remove avatar" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+        </div>
+
+        <div class="popup-row">
+          <span class="popup-row-label">My Name</span>
+          <input type="text" id="myNameInput" class="settings-text-input" placeholder="Name...">
+        </div>
+
+        <div class="popup-row">
+          <span class="popup-row-label">Their Name</span>
+          <input type="text" id="partnerNameInput" class="settings-text-input" placeholder="Name...">
+        </div>
+
+        <div class="popup-row">
+              <span class="popup-row-label">Wallpaper</span>
+              <input type="file" hidden id="wallpaperInput" accept="image/*">
           <div class="wallpaper-preview" id="wallpaperPreview"></div>
           <button class="wallpaper-choose-btn" id="wallpaperBtn">Choose</button>
           <div class="wallpaper-remove-btn" id="wallpaperRemoveBtn" title="Remove wallpaper" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
@@ -755,9 +784,14 @@ const status = document.getElementById("status");
 const typingIndicator = document.getElementById("typingIndicator");
 const contextOverlay = document.getElementById("contextOverlay");
 const partnerAvatar = document.getElementById("partnerAvatar");
-const avatarInput = document.getElementById("avatarInput");
 const chatTitle = document.getElementById("chatTitle");
 const inputActionBanner = document.getElementById("inputActionBanner");
+const myAvatarInput = document.getElementById("myAvatarInput");
+const myAvatarPreview = document.getElementById("myAvatarPreview");
+const myAvatarBtn = document.getElementById("myAvatarBtn");
+const myAvatarRemoveBtn = document.getElementById("myAvatarRemoveBtn");
+const myNameInput = document.getElementById("myNameInput");
+const partnerNameInput = document.getElementById("partnerNameInput");
 const bannerTitle = document.getElementById("bannerTitle");
 const bannerDesc = document.getElementById("bannerDesc");
 const bannerClose = document.getElementById("bannerClose");
@@ -855,9 +889,9 @@ function setupPresence() {
   onDisconnect(presenceRef).remove();
   
   const otherRole = role === "hunter" ? "prey" : "hunter";
-  chatTitle.textContent = otherRole === "hunter" ? "Hunter" : "Prey";
+    // chatTitle is handled by settings sync now
 
-  // Monitor other user's presence
+    // Monitor other user's presence
   onValue(ref(db, `rooms/${roomCode}/presence/${otherRole}`), snapshot => {
     if (snapshot.exists()) {
       status.textContent = "● Active now";
@@ -897,14 +931,35 @@ function initChat() {
   onValue(settingsRef, snapshot => {
     const s = snapshot.val() || {};
     
-    // Sync Avatar
-    if (s.avatarUrl) {
-      partnerAvatar.innerHTML = `<img src="${s.avatarUrl}">`;
-    } else {
-      partnerAvatar.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
-    }
+    const otherRole = role === "hunter" ? "prey" : "hunter";
     
-    // Sync Color
+        // Sync Partner Avatar
+        if (s.avatars && s.avatars[otherRole]) {
+          partnerAvatar.innerHTML = `<img src="${s.avatars[otherRole]}">`;
+        } else {
+          partnerAvatar.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+        }
+    
+        // Sync My Avatar (Settings)
+        if (s.avatars && s.avatars[role]) {
+          myAvatarPreview.style.backgroundImage = `url('${s.avatars[role]}')`;
+          myAvatarRemoveBtn.style.display = '';
+        } else {
+          myAvatarPreview.style.backgroundImage = 'none';
+          myAvatarRemoveBtn.style.display = 'none';
+        }
+    
+        // Sync Names
+        const myDefaultName = role === "hunter" ? "Hunter" : "Prey";
+        const theirDefaultName = otherRole === "hunter" ? "Hunter" : "Prey";
+        const myName = (s.names && s.names[role]) || myDefaultName;
+        const theirName = (s.names && s.names[otherRole]) || theirDefaultName;
+    
+        if (document.activeElement !== myNameInput) myNameInput.value = myName;
+        if (document.activeElement !== partnerNameInput) partnerNameInput.value = theirName;
+        chatTitle.textContent = theirName;
+    
+        // Sync Color
         const activeColor = s.color || (themeIndex === 0 ? "#3797f0" : "#1d6fd1");
         document.documentElement.style.setProperty('--right', activeColor);
         document.body.style.setProperty('--right', activeColor);
@@ -920,20 +975,32 @@ function initChat() {
   });
 }
 
-/* AVATAR UPLOAD */
-partnerAvatar.onclick = () => avatarInput.click();
-avatarInput.onchange = async e => {
+/* SETTINGS MODAL & PROFILE UPLOAD */
+myAvatarBtn.onclick = () => myAvatarInput.click();
+myAvatarInput.onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try {
-    const fileRef = storageRef(storage, `rooms/${roomCode}/avatar_${Date.now()}`);
+    const fileRef = storageRef(storage, `rooms/${roomCode}/avatar_${role}_${Date.now()}`);
     await uploadBytes(fileRef, f);
     const url = await getDownloadURL(fileRef);
-    await update(ref(db, `rooms/${roomCode}/settings`), { avatarUrl: url });
+    await update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: url });
   } catch (err) {
     console.error(err);
     alert("Avatar upload failed");
   }
+  myAvatarInput.value = "";
+};
+myAvatarRemoveBtn.onclick = () => {
+  update(ref(db, `rooms/${roomCode}/settings`), { [`avatars/${role}`]: null }).catch(console.error);
+};
+
+myNameInput.onchange = () => {
+  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${role}`]: myNameInput.value.trim() }).catch(console.error);
+};
+partnerNameInput.onchange = () => {
+  const otherRole = role === "hunter" ? "prey" : "hunter";
+  update(ref(db, `rooms/${roomCode}/settings`), { [`names/${otherRole}`]: partnerNameInput.value.trim() }).catch(console.error);
 };
 
 /* SETTINGS MODAL */
