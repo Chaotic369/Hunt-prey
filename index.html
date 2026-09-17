@@ -672,7 +672,7 @@ textarea{
           <div class="role-btn" data-role="prey">Prey</div>
         </div>
     <div class="pin-entry-container">
-          <input type="password" id="roomCode" inputmode="numeric" autocomplete="new-password" spellcheck="false" data-lpignore="true">
+          <input type="password" id="entryPinNode" name="otp_code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autocorrect="off" spellcheck="false" data-lpignore="true">
           <button id="joinBtn" title="Join Chat">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
       </button>
@@ -793,7 +793,7 @@ const viewer = document.getElementById("viewer");
 const viewerContent = document.getElementById("viewerContent");
 const closeViewer = document.getElementById("closeViewer");
 const setupModal = document.getElementById("setupModal");
-const roomCodeInput = document.getElementById("roomCode");
+const roomCodeInput = document.getElementById("entryPinNode");
 const joinBtn = document.getElementById("joinBtn");
 const status = document.getElementById("status");
 const typingIndicator = document.getElementById("typingIndicator");
