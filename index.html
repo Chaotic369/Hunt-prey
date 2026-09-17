@@ -1752,19 +1752,26 @@ async function startVoice() {
   recordingCancelled = false;
 
   try {
+        // INSTAGRAM STYLE: Disable browser software filters to get pure hardware mic feed
         const s = await navigator.mediaDevices.getUserMedia({ 
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 48000
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000,
+            channelCount: 2
           } 
         });
       
         const options = { audioBitsPerSecond: 128000 };
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      
+        // Prefer native MP4 on iOS/Safari, fallback to Opus WebM for Android/Chrome
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options.mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           options.mimeType = 'audio/webm;codecs=opus';
         }
+      
         recorder = new MediaRecorder(s, options);
         chunks = [];
     recWaveformSamples = [];
@@ -1804,10 +1811,11 @@ async function startVoice() {
 
       recHintText.textContent = "Sending…";
             recCancelBtn.style.display = 'none';
+            const fileExt = recorder.mimeType && recorder.mimeType.includes("mp4") ? "m4a" : "webm";
             const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
             try {
               showProgress(5);
-              const uniquePath = `voice_${Date.now()}.webm`;
+              const uniquePath = `voice_${Date.now()}.${fileExt}`;
               const url = await uploadToSupabaseWithProgress(blob, uniquePath);
 
               const messagesRef = ref(db, `rooms/${roomCode}/messages`);
