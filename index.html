@@ -891,6 +891,9 @@ avatarInput.onchange = async e => {
 /* SETTINGS MODAL */
 settingsBtn.onclick = () => settingsModal.style.display = "flex";
 closeSettingsBtn.onclick = () => settingsModal.style.display = "none";
+settingsModal.onclick = (e) => {
+  if (e.target === settingsModal) settingsModal.style.display = "none";
+};
 
 const colorSlider = document.getElementById("colorSlider");
 const colorPreviewDot = document.getElementById("colorPreviewDot");
