@@ -1752,9 +1752,21 @@ async function startVoice() {
   recordingCancelled = false;
 
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-    recorder = new MediaRecorder(s);
-    chunks = [];
+        const s = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000
+          } 
+        });
+      
+        const options = { audioBitsPerSecond: 128000 };
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options.mimeType = 'audio/webm;codecs=opus';
+        }
+        recorder = new MediaRecorder(s, options);
+        chunks = [];
     recWaveformSamples = [];
     startTime = Date.now();
     recorder.ondataavailable = e => chunks.push(e.data);
@@ -1792,7 +1804,7 @@ async function startVoice() {
 
       recHintText.textContent = "Sending…";
             recCancelBtn.style.display = 'none';
-            const blob = new Blob(chunks, { type: "audio/webm" });
+            const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
             try {
               showProgress(5);
               const uniquePath = `voice_${Date.now()}.webm`;
