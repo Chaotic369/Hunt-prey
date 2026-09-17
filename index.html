@@ -1377,14 +1377,15 @@ media.onchange = async e => {
 };
 
 /* VOICE RECORD */
-let recorder, chunks = [], recording = false, startTime, micStartX = 0, recordingCancelled = false;
-let recTimerInterval = null;
+let recorder, chunks = [], recording = false, startingUp = false, releasedBeforeReady = false, startTime, micStartX = 0, recordingCancelled = false;
+let recTimerInterval = null, recSafetyTimeout = null;
 let recAnalyser = null, recAudioCtx = null, recWaveformSamples = [];
 const voiceRecordingBar = document.getElementById("voiceRecordingBar");
 const recTimer = document.getElementById("recTimer");
 const recCancelledFlash = document.getElementById("recCancelledFlash");
 const mediaLabel = document.getElementById("mediaLabel");
 const CANCEL_THRESHOLD = 90;
+const MAX_RECORDING_MS = 3 * 60 * 1000;
 
 function formatRecTimer(totalSeconds) {
   const mins = Math.floor(totalSeconds / 60);
@@ -1400,14 +1401,35 @@ function sampleWaveform() {
   recWaveformSamples.push(Math.max(4, Math.min(24, Math.round(4 + (avg / 255) * 20))));
 }
 
+function showSendingState() {
+  recTimer.textContent = "";
+  const hint = voiceRecordingBar.querySelector('.rec-slide-hint');
+  if (hint) hint.textContent = "Sending…";
+}
+
+function resetVoiceBarUI() {
+  const hint = voiceRecordingBar.querySelector('.rec-slide-hint');
+  if (hint) hint.innerHTML = `<span class="rec-slide-arrow">←</span> Slide to cancel`;
+}
+
 const startVoice = async (e) => {
   if (e.type === 'touchstart') e.preventDefault();
-  if (recording) return;
+  if (recording || startingUp) return;
+  startingUp = true;
+  releasedBeforeReady = false;
   recordingCancelled = false;
   micStartX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-  
+
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // If the user already released before permission resolved, don't start at all.
+    if (releasedBeforeReady) {
+      startingUp = false;
+      s.getTracks().forEach(t => t.stop());
+      return;
+    }
+
     recorder = new MediaRecorder(s);
     chunks = [];
     recWaveformSamples = [];
@@ -1428,13 +1450,17 @@ const startVoice = async (e) => {
       recorder.stream.getTracks().forEach(t => t.stop());
       recording = false;
       clearInterval(recTimerInterval);
+      clearTimeout(recSafetyTimeout);
       if (recAudioCtx) { recAudioCtx.close().catch(() => {}); recAudioCtx = null; recAnalyser = null; }
-      voiceRecordingBar.classList.remove('active');
-      voiceRecordingBar.style.transform = '';
-      mediaLabel.style.display = '';
-      text.style.display = '';
 
       if (recordingCancelled) {
+        voiceRecordingBar.classList.remove('active');
+        voiceRecordingBar.style.transform = '';
+        voiceRecordingBar.style.opacity = '';
+        mediaLabel.style.display = '';
+        text.style.display = '';
+        resetVoiceBarUI();
+        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
         recCancelledFlash.classList.remove('show');
         void recCancelledFlash.offsetWidth;
         recCancelledFlash.classList.add('show');
@@ -1442,8 +1468,18 @@ const startVoice = async (e) => {
       }
 
       const duration = Math.floor((Date.now() - startTime) / 1000);
-      if (duration < 1) return; // Prevent accidental short taps
+      if (duration < 1) {
+        voiceRecordingBar.classList.remove('active');
+        voiceRecordingBar.style.transform = '';
+        voiceRecordingBar.style.opacity = '';
+        mediaLabel.style.display = '';
+        text.style.display = '';
+        resetVoiceBarUI();
+        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+        return; // Prevent accidental short taps
+      }
 
+      showSendingState();
       const blob = new Blob(chunks, { type: "audio/webm" });
       try {
         const fileRef = storageRef(storage, `rooms/${roomCode}/voice_${Date.now()}.webm`);
@@ -1462,11 +1498,20 @@ const startVoice = async (e) => {
       } catch (error) {
         console.error("Voice upload error:", error);
         alert("Failed to upload voice message");
+      } finally {
+        voiceRecordingBar.classList.remove('active');
+        voiceRecordingBar.style.transform = '';
+        voiceRecordingBar.style.opacity = '';
+        mediaLabel.style.display = '';
+        text.style.display = '';
+        resetVoiceBarUI();
+        mic.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
       }
     };
 
     recorder.start();
     recording = true;
+    startingUp = false;
     mediaLabel.style.display = 'none';
     text.style.display = 'none';
     voiceRecordingBar.classList.add('active');
@@ -1478,8 +1523,13 @@ const startVoice = async (e) => {
       recTimer.textContent = formatRecTimer(elapsed);
       sampleWaveform();
     }, 200);
+
+    recSafetyTimeout = setTimeout(() => {
+      if (recording && recorder && recorder.state !== "inactive") recorder.stop();
+    }, MAX_RECORDING_MS);
   } catch (err) {
     console.error("Mic access denied", err);
+    startingUp = false;
   }
 };
 
@@ -1503,6 +1553,10 @@ const moveVoice = (e) => {
 };
 
 const stopVoice = (e) => {
+  if (startingUp && !recording) {
+    releasedBeforeReady = true;
+    return;
+  }
   if (!recording || recordingCancelled) return;
   if (recorder && recorder.state !== "inactive") recorder.stop();
 };
