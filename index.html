@@ -983,37 +983,37 @@ function attachLongPress(targetEls) {
         };
 
         const endPress = (e) => {
-          if (e.type === 'mouseup' && longPressTouchDevice) return;
-          if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media')) return;
+              if (e.type === 'mouseup' && longPressTouchDevice) return;
+              if (e.target.closest('.play') || e.target.closest('.progress') || e.target.closest('.media') || e.target.closest('.reactions')) return;
 
-          clearTimeout(pressTimer);
-          const deltaX = currentX - startX;
-          b.style.transform = '';
+              clearTimeout(pressTimer);
+              const deltaX = currentX - startX;
+              b.style.transform = '';
 
-          if (deltaX > 45) {
-            const msg = allMsgs.find(m => m.id === b.dataset.id);
-            if (msg) setReplyTarget(msg);
-          }
-          startX = 0;
-
-          // Double tap to heart (Toggle Like)
-          const currentTime = new Date().getTime();
-          const tapLength = currentTime - lastTap;
-          if (tapLength < 300 && tapLength > 0 && !isLongPress) {
-            const msg = allMsgs.find(m => m.id === b.dataset.id);
-            if (msg) {
-              const hasHeart = msg.reactions && msg.reactions[role] === "❤️";
-              if (hasHeart) {
-                remove(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions/${role}`)).catch(console.error);
-              } else {
-                update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+              if (deltaX > 45) {
+                const msg = allMsgs.find(m => m.id === b.dataset.id);
+                if (msg) setReplyTarget(msg);
               }
-              if (navigator.vibrate) navigator.vibrate(50);
-            }
-            e.preventDefault();
-          }
-          lastTap = currentTime;
-        };
+              startX = 0;
+
+              // Double tap to react/unreact
+                    const currentTime = new Date().getTime();
+                    const tapLength = currentTime - lastTap;
+                    if (tapLength < 300 && tapLength > 0 && !isLongPress) {
+                      const msg = allMsgs.find(m => m.id === b.dataset.id);
+                      if (msg) {
+                        const existingReaction = msg.reactions && msg.reactions[role];
+                        if (existingReaction) {
+                          remove(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions/${role}`)).catch(console.error);
+                        } else {
+                          update(ref(db, `rooms/${roomCode}/messages/${b.dataset.id}/reactions`), { [role]: "❤️" }).catch(console.error);
+                        }
+                        if (navigator.vibrate) navigator.vibrate(50);
+                      }
+                      e.preventDefault();
+                    }
+                    lastTap = currentTime;
+                  };
 
         b.addEventListener('mousedown', startPress);
         b.addEventListener('mousemove', movePress);
