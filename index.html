@@ -591,6 +591,29 @@ textarea::placeholder{color:var(--text);opacity:.4}
 }
 #progressBar.active { display: block; }
 
+/* ===== DESKTOP ===== */
+#text{field-sizing:content;max-height:140px;min-height:38px;overflow-y:auto}
+@media (min-width:900px){
+  .app{max-width:760px;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+  .bubble{max-width:64%}
+  .bubble.media-only{max-width:min(64%,380px)}
+  .media img,.media video{max-height:60vh;object-fit:cover}
+  #remoteVideo{object-fit:contain}
+  #localCallVideo{width:200px;height:150px}
+  .ig-emoji-more{max-width:420px;bottom:24px;border:1px solid var(--border);border-radius:18px}
+}
+@media (hover:hover) and (pointer:fine){
+  .action,.icon,.ig-action-item,.attachment-item,.call-btn{cursor:pointer}
+  .action:hover,.icon:hover{opacity:.8}
+  .ig-action-item:hover,.attachment-item:hover{background:var(--border)}
+  .ig-reaction-capsule span:hover{transform:scale(1.25)}
+  .call-btn:hover{filter:brightness(1.2)}
+  .messages{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .messages::-webkit-scrollbar{width:6px}
+  .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .messages::-webkit-scrollbar-track{background:transparent}
+}
+
 /* MODAL */
 .modal{
   position:fixed;inset:0;background:rgba(0,0,0,.8);
@@ -3389,6 +3412,19 @@ window.addEventListener("online", () => {
 
 window.addEventListener("pagehide", () => {
   if (callPc && roomCode) remove(callRef()).catch(() => {});
+});
+
+/* DESKTOP KEYBOARD: Esc closes the top-most layer */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (callWarnEl.classList.contains("show")) { callWarnEl.classList.remove("show"); callWarnYes = null; return; }
+  if (callConfirmEl.classList.contains("show")) { callConfirmEl.classList.remove("show"); return; }
+  const dc = document.querySelector(".del-confirm.show");
+  if (dc) { dc.classList.remove("show"); return; }
+  if (viewer.style.display === "flex") { closeViewerNow(); return; }
+  if (contextOverlay.style.display === "block") { contextOverlay.style.display = "none"; resetEmojiMore(); return; }
+  if (attachMenu.classList.contains("show")) { attachMenu.classList.remove("show"); return; }
+  if (inputActionBanner.style.display === "flex") { document.getElementById("bannerClose").click(); }
 });
 
 /* CLEAR */
