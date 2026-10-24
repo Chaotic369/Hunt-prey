@@ -538,7 +538,7 @@ textarea{
 .call-overlay.incoming{background:radial-gradient(ellipse at 50% 30%,#1c1c1c 0%,#000 75%)}
 .call-overlay.incoming .call-incoming-info{display:flex}
 .call-overlay.incoming #remoteVideo,.call-overlay.incoming #localCallVideo,.call-overlay.incoming .call-status{display:none}
-.call-overlay.incoming #callMute,.call-overlay.incoming #callCam,.call-overlay.incoming #callFlip{display:none}
+.call-overlay.incoming #callMute,.call-overlay.incoming #callCam,.call-overlay.incoming #callFlip,.call-overlay.incoming #callSpeaker{display:none}
 .call-overlay.incoming .call-controls{gap:28px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0}
 .call-overlay.incoming .call-btn{padding:16px 34px;font-size:16px;border-radius:32px;min-width:120px}
 .call-overlay.incoming #callEnd{order:-1}
@@ -2716,6 +2716,39 @@ const callIncomingName = document.getElementById("callIncomingName");
 const callIncomingLabel = document.getElementById("callIncomingLabel");
 
 function callRef(p) { return ref(db, `rooms/${roomCode}/call${p ? "/" + p : ""}`); }
+
+/* In-call warnings: camera on + speaker on */
+let callSpeakerOn = false, callCamConfirmed = false, callWarnYes = null;
+const callWarnEl = document.createElement("div");
+callWarnEl.className = "call-confirm";
+callWarnEl.style.zIndex = "1700";
+callWarnEl.innerHTML = `<div class="call-confirm-box"><div class="call-confirm-title" id="callWarnTitle"></div><div class="call-confirm-desc" id="callWarnDesc"></div><div class="call-confirm-actions"><button id="callWarnNo">Cancel</button><button id="callWarnYesBtn">OK</button></div></div>`;
+document.body.appendChild(callWarnEl);
+
+function askCallWarn(title, desc, yesLabel, onYes) {
+  callWarnEl.querySelector("#callWarnTitle").textContent = title;
+  callWarnEl.querySelector("#callWarnDesc").textContent = desc;
+  callWarnEl.querySelector("#callWarnYesBtn").textContent = yesLabel;
+  callWarnYes = onYes;
+  callWarnEl.classList.add("show");
+}
+callWarnEl.querySelector("#callWarnNo").onclick = () => { callWarnEl.classList.remove("show"); callWarnYes = null; };
+callWarnEl.querySelector("#callWarnYesBtn").onclick = () => {
+  callWarnEl.classList.remove("show");
+  const fn = callWarnYes; callWarnYes = null;
+  if (fn) fn();
+};
+callWarnEl.onclick = (e) => { if (e.target === callWarnEl) { callWarnEl.classList.remove("show"); callWarnYes = null; } };
+
+/* Speaker button */
+const callSpeakerBtn = document.createElement("button");
+callSpeakerBtn.className = "call-btn";
+callSpeakerBtn.id = "callSpeaker";
+callSpeakerBtn.textContent = "Speaker";
+callEnd.parentNode.insertBefore(callSpeakerBtn, callEnd);
+
+function setCallSpeaker(on) {
+  c
 
 /* Use the app's current wallpaper as the call backdrop, with a dark scrim for readability */
 function applyCallBackdrop() {
