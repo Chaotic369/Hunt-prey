@@ -314,6 +314,8 @@ body{
 }
 .waveform-bar.played{background:#fff;}
 .duration{font-size:11px;opacity:.7;min-width:32px;text-align:right;flex-shrink:0;}
+.speed-chip{font-size:10px;font-weight:700;min-width:28px;padding:3px 6px;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;text-align:center;cursor:pointer;flex-shrink:0;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums}
+.speed-chip:active{opacity:.6}
 
 /* VOICE RECORDING BAR */
 .voice-recording-bar{
@@ -2331,6 +2333,22 @@ document.getElementById("contextUnsend").onclick = () => {
           if (!audio || !waveform) return;
 
           const originalDuration = durationEl.textContent;
+
+                    // Playback speed chip (1x / 1.5x / 2x), remembered for all voice notes
+                    const SPEEDS = [1, 1.5, 2];
+                    window.voiceSpeed = window.voiceSpeed || 1;
+                    audio.playbackRate = window.voiceSpeed;
+                    const speedChip = document.createElement("div");
+                    speedChip.className = "speed-chip";
+                    speedChip.textContent = window.voiceSpeed + "x";
+                    durationEl.after(speedChip);
+                    speedChip.onclick = (e) => {
+                      e.stopPropagation();
+                      const next = SPEEDS[(SPEEDS.indexOf(window.voiceSpeed) + 1) % SPEEDS.length];
+                      window.voiceSpeed = next;
+                      audio.playbackRate = next;
+                      speedChip.textContent = next + "x";
+                    };
           const barEls = () => Array.from(waveform.querySelectorAll('.waveform-bar'));
 
           const setPlayedRatio = (ratio) => {
