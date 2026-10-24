@@ -561,6 +561,9 @@ textarea::placeholder{color:var(--text);opacity:.4}
 .call-btn.accept{background:#22c55e}
 .call-btn.end{background:#ef4444}
 .call-btn:active{transform:scale(.95)}
+.del-confirm{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:3100;padding:16px}
+.del-confirm.show{display:flex}
+.del-confirm-actions button.danger{color:#ed4956;font-weight:700}
 
 /* VIEWER */
 .viewer{
@@ -2269,9 +2272,27 @@ document.getElementById("contextSave").onclick = async () => {
   contextOverlay.style.display = "none";
 };
 
-document.getElementById("contextUnsend").onclick = async () => {
-  if (confirm("Unsend this message?")) {
-    const msg = allMsgs.find(m => m.id === activeMessageId);
+const delConfirmEl = document.createElement("div");
+delConfirmEl.className = "del-confirm";
+delConfirmEl.innerHTML = `<div class="call-confirm-box"><div class="call-confirm-title">Unsend message?</div><div class="call-confirm-desc">This will delete it for everyone.</div><div class="call-confirm-actions del-confirm-actions"><button id="delConfirmNo">Cancel</button><button class="danger" id="delConfirmYes">Unsend</button></div></div>`;
+document.body.appendChild(delConfirmEl);
+let delConfirmYes = null;
+function askDeleteConfirm(onYes) {
+  delConfirmYes = onYes;
+  delConfirmEl.classList.add("show");
+}
+delConfirmEl.querySelector("#delConfirmNo").onclick = () => { delConfirmEl.classList.remove("show"); delConfirmYes = null; };
+delConfirmEl.querySelector("#delConfirmYes").onclick = () => {
+  delConfirmEl.classList.remove("show");
+  const fn = delConfirmYes; delConfirmYes = null;
+  if (fn) fn();
+};
+delConfirmEl.onclick = (e) => { if (e.target === delConfirmEl) { delConfirmEl.classList.remove("show"); delConfirmYes = null; } };
+
+document.getElementById("contextUnsend").onclick = () => {
+  const unsendId = activeMessageId;
+  askDeleteConfirm(async () => {
+    const msg = allMsgs.find(m => m.id === unsendId);
     if (msg && msg.storagePath) {
       await supabaseClient.storage.from(BUCKET_NAME).remove([msg.storagePath]).catch(console.error);
     } else if (msg && (msg.type === 'media' || msg.type === 'voice') && msg.src) {
@@ -2283,10 +2304,10 @@ document.getElementById("contextUnsend").onclick = async () => {
         }
       } catch(e) { console.error(e); }
     }
-    await remove(ref(db, `rooms/${roomCode}/messages/${activeMessageId}`)).catch(console.error);
-    contextOverlay.style.display = "none";
-  }
-};
+    await remove(ref(db, `rooms/${roomCode}/messages/${unsendId}`)).catch(console.error);
+        contextOverlay.style.display = "none";
+      });
+    };
 
       /* VOICE */
       function attachVoice() {
