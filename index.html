@@ -592,10 +592,10 @@ textarea::placeholder{color:var(--text);opacity:.4}
 #progressBar.active { display: block; }
 
 /* ===== DESKTOP ===== */
+.app{max-width:none;width:100%;margin:0}
 #text{field-sizing:content;max-height:140px;min-height:38px;overflow-y:auto}
 @media (min-width:900px){
-  .app{max-width:760px;border-left:1px solid var(--border);border-right:1px solid var(--border)}
-  .bubble{max-width:64%}
+  .bubble{max-width:min(64%,640px)}
   .bubble.media-only{max-width:min(64%,380px)}
   .media img,.media video{max-height:60vh;object-fit:cover}
   #remoteVideo{object-fit:contain}
