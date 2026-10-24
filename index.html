@@ -490,7 +490,10 @@ textarea{
 #remoteVideo{width:100%;height:100%;object-fit:cover;background:#000}
 .call-overlay.voice-only #remoteVideo{opacity:0}
 .call-overlay.voice-only #localCallVideo{display:none}
-.call-overlay.voice-only .call-status{top:50%;transform:translateY(-50%);font-size:20px}
+.call-overlay.voice-only{background:radial-gradient(ellipse at 50% 30%,#1c1c1c 0%,#000 75%)}
+.call-overlay.voice-only .call-incoming-info{display:flex}
+.call-overlay.voice-only .call-status{display:none}
+.call-overlay.voice-only .call-incoming-label{font-size:16px;opacity:.7;font-variant-numeric:tabular-nums}
 .call-overlay.voice-only #callFlip{display:none}
 #localCallVideo{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:96px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:#111;transform:scaleX(-1);z-index:2}
 .call-confirm{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:1600;padding:16px}
@@ -536,11 +539,11 @@ textarea{
 .call-overlay.incoming .call-incoming-info{display:flex}
 .call-overlay.incoming #remoteVideo,.call-overlay.incoming #localCallVideo,.call-overlay.incoming .call-status{display:none}
 .call-overlay.incoming #callMute,.call-overlay.incoming #callCam,.call-overlay.incoming #callFlip{display:none}
-.call-overlay.incoming .call-controls{gap:28px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
+.call-overlay.incoming .call-controls{gap:28px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0}
 .call-overlay.incoming .call-btn{padding:16px 34px;font-size:16px;border-radius:32px;min-width:120px}
 .call-overlay.incoming #callEnd{order:-1}
-.call-controls{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);left:0;right:0;display:flex;justify-content:center;flex-wrap:wrap;gap:10px;padding:0 12px;z-index:2}
-.call-btn{padding:12px 18px;border:none;border-radius:24px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.call-controls{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:10px 12px;border-radius:36px;background:rgba(0,0,0,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:2}
+.call-btn{padding:12px 16px;min-width:72px;border:none;border-radius:24px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .call-btn.off{background:rgba(255,255,255,.45);color:#000}
 .call-btn.accept{background:#22c55e}
 .call-btn.end{background:#ef4444}
@@ -2717,8 +2720,32 @@ function callRef(p) { return ref(db, `rooms/${roomCode}/call${p ? "/" + p : ""}`
 function updateCallMode() {
   const voice = !callLocalVideoOn && !callRemoteVideoLive;
   callOverlay.classList.toggle("voice-only", voice);
-  if (callPc && callPc.connectionState === "connected") callStatus.textContent = voice ? "Voice call" : "";
-}
+  if (callPc && callPc.connectionState === "connected") startCallTimer();
+  }
+
+  let callTimerInterval = null, callStartTs = 0;
+
+  function startCallTimer() {
+    if (callTimerInterval) return;
+    callStartTs = Date.now();
+    const tick = () => {
+      const s = Math.floor((Date.now() - callStartTs) / 1000);
+      const m = Math.floor(s / 60);
+      callStatus.textContent = m + ":" + String(s % 60).padStart(2, "0");
+    };
+    tick();
+    callTimerInterval = setInterval(tick, 1000);
+  }
+
+  function stopCallTimer() {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+  }
+
+  /* Mirror the status text into the voice-call screen label */
+  new MutationObserver(() => {
+    if (!callOverlay.classList.contains("incoming")) callIncomingLabel.textContent = callStatus.textContent;
+  }).observe(callStatus, { childList: true, characterData: true, subtree: true });
 
 function syncCallCamUI() {
   callLocalVideoOn = !!callStream && callStream.getVideoTracks().some(t => t.enabled);
@@ -2732,11 +2759,11 @@ function setCallUI(txt, incoming) {
   callAccept.style.display = incoming ? "" : "none";
     callOverlay.classList.toggle("incoming", !!incoming);
     callEnd.textContent = incoming ? "Decline" : "End";
-    if (incoming) {
-      callIncomingName.textContent = chatTitle.textContent || "Someone";
-      callIncomingLabel.textContent = callIncomingVideo ? "Incoming video call" : "Incoming voice call";
-      callIncomingAvatar.innerHTML = partnerAvatar.innerHTML;
-    }
+    callIncomingName.textContent = chatTitle.textContent || "Someone";
+        callIncomingAvatar.innerHTML = partnerAvatar.innerHTML;
+        if (incoming) {
+          callIncomingLabel.textContent = callIncomingVideo ? "Incoming video call" : "Incoming voice call";
+        }
     callOverlay.classList.add("show");
 }
 
@@ -2760,6 +2787,7 @@ function cleanupCall() {
     callRemoteVideoLive = false;
     callLocalVideoOn = false;
     callOverlay.classList.remove("voice-only");
+        stopCallTimer();
   callMute.classList.remove("off"); callMute.textContent = "Mute";
   callCam.classList.remove("off"); callCam.textContent = "Camera";
   callOverlay.classList.remove("show");
