@@ -484,6 +484,18 @@ textarea{
 }
 .send{background:var(--right);color:#fff}
 
+/* VIDEO CALL */
+.call-overlay{position:fixed;inset:0;background:#000;display:none;z-index:1500;flex-direction:column}
+.call-overlay.show{display:flex}
+#remoteVideo{width:100%;height:100%;object-fit:cover;background:#000}
+#localCallVideo{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:96px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:#111;transform:scaleX(-1);z-index:2}
+.call-status{position:absolute;top:calc(env(safe-area-inset-top,0px) + 24px);left:0;right:0;text-align:center;font-size:16px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);z-index:2;pointer-events:none}
+.call-controls{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);left:0;right:0;display:flex;justify-content:center;flex-wrap:wrap;gap:10px;padding:0 12px;z-index:2}
+.call-btn{padding:12px 18px;border:none;border-radius:24px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.call-btn.off{background:rgba(255,255,255,.45);color:#000}
+.call-btn.accept{background:#22c55e}
+.call-btn.end{background:#ef4444}
+
 /* VIEWER */
 .viewer{
   position:fixed;inset:0;background:#000;
@@ -737,7 +749,8 @@ textarea{
     </div>
   </div>
   <div class="actions">
-        <div class="action" id="settingsBtn" title="Settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div>
+        <div class="action" id="callBtn" title="Video call"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></div>
+                <div class="action" id="settingsBtn" title="Settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div>
         <div class="action" id="clear" title="Clear Chat"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></div>
       </div>
   </div>
@@ -793,7 +806,20 @@ textarea{
 <div class="viewer" id="viewer">
   <span id="closeViewer" style="position:absolute;top:20px;right:20px;cursor:pointer;color:#fff;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
   <div id="viewerContent"></div>
-</div>
+  </div>
+
+  <div class="call-overlay" id="callOverlay">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localCallVideo" autoplay playsinline muted></video>
+    <div class="call-status" id="callStatus">Calling…</div>
+    <div class="call-controls">
+      <button class="call-btn accept" id="callAccept" style="display:none;">Accept</button>
+      <button class="call-btn" id="callMute">Mute</button>
+      <button class="call-btn" id="callCam">Camera</button>
+      <button class="call-btn" id="callFlip">Flip</button>
+      <button class="call-btn end" id="callEnd">End</button>
+    </div>
+  </div>
 
 </div>
 
@@ -926,7 +952,7 @@ textarea{
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, push, onValue, get, set, remove, onDisconnect, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, push, onValue, onChildAdded, get, set, remove, onDisconnect, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 // Firebase config
 const firebaseConfig = {
@@ -1226,6 +1252,7 @@ function setupPresence() {
 /* CHAT INIT & SYNC SETTINGS */
 function initChat() {
   setupPresence();
+  initCall();
   
   const messagesRef = ref(db, `rooms/${roomCode}/messages`);
   onValue(messagesRef, snapshot => {
@@ -2303,6 +2330,215 @@ recCancelBtn.onclick = (e) => {
   e.stopPropagation();
   cancelVoice();
 };
+
+/* VIDEO CALL */
+const CALL_ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+let callPc = null, callStream = null, callCandUnsub = null, callPendingCands = [];
+let callIncomingOffer = null, callRingTimer = null, callVibeTimer = null, callFacing = "user", callAnswerSet = false;
+
+const callBtn = document.getElementById("callBtn");
+const callOverlay = document.getElementById("callOverlay");
+const remoteVideo = document.getElementById("remoteVideo");
+const localCallVideo = document.getElementById("localCallVideo");
+const callStatus = document.getElementById("callStatus");
+const callAccept = document.getElementById("callAccept");
+const callMute = document.getElementById("callMute");
+const callCam = document.getElementById("callCam");
+const callFlip = document.getElementById("callFlip");
+const callEnd = document.getElementById("callEnd");
+
+function callRef(p) { return ref(db, `rooms/${roomCode}/call${p ? "/" + p : ""}`); }
+
+function setCallUI(txt, incoming) {
+  callStatus.textContent = txt;
+  callAccept.style.display = incoming ? "" : "none";
+  callOverlay.classList.add("show");
+}
+
+function cleanupCall() {
+  clearTimeout(callRingTimer);
+  clearInterval(callVibeTimer);
+  if (callCandUnsub) { callCandUnsub(); callCandUnsub = null; }
+  if (callPc) {
+    callPc.onicecandidate = null;
+    callPc.ontrack = null;
+    callPc.onconnectionstatechange = null;
+    callPc.close();
+    callPc = null;
+  }
+  if (callStream) { callStream.getTracks().forEach(t => t.stop()); callStream = null; }
+  remoteVideo.srcObject = null;
+  localCallVideo.srcObject = null;
+  callPendingCands = [];
+  callIncomingOffer = null;
+  callAnswerSet = false;
+  callMute.classList.remove("off"); callMute.textContent = "Mute";
+  callCam.classList.remove("off"); callCam.textContent = "Camera";
+  callOverlay.classList.remove("show");
+}
+
+function endCall() {
+  cleanupCall();
+  remove(callRef()).catch(console.error);
+}
+
+async function getCallMedia() {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: callFacing, width: { ideal: 960 }, height: { ideal: 540 } },
+      audio: { echoCancellation: true, noiseSuppression: true }
+    });
+  } catch (e) {
+    return await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+  }
+}
+
+function flushCallCands(pc) {
+  callPendingCands.forEach(c => pc.addIceCandidate(c).catch(() => {}));
+  callPendingCands = [];
+}
+
+function makeCallPc() {
+  const other = role === "hunter" ? "prey" : "hunter";
+  const pc = new RTCPeerConnection(CALL_ICE);
+  callStream.getTracks().forEach(t => pc.addTrack(t, callStream));
+  pc.ontrack = (e) => {
+    remoteVideo.srcObject = e.streams[0];
+    remoteVideo.play().catch(() => {});
+  };
+  pc.onicecandidate = (e) => {
+    if (e.candidate) push(callRef(`candidates/${role}`), JSON.stringify(e.candidate.toJSON())).catch(console.error);
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "connected") callStatus.textContent = "";
+    else if (pc.connectionState === "failed") { endCall(); }
+  };
+  callCandUnsub = onChildAdded(callRef(`candidates/${other}`), (snap) => {
+    let c = null;
+    try { c = JSON.parse(snap.val()); } catch (e) { return; }
+    if (pc.remoteDescription) pc.addIceCandidate(c).catch(() => {});
+    else callPendingCands.push(c);
+  });
+  callPc = pc;
+  return pc;
+}
+
+async function startCall() {
+  if (callPc || callIncomingOffer) return;
+  if (!navigator.mediaDevices || !window.RTCPeerConnection) {
+    alert("Video calls need HTTPS and a supported browser");
+    return;
+  }
+  try {
+    setCallUI("Starting camera…", false);
+    callStream = await getCallMedia();
+    localCallVideo.srcObject = callStream;
+    await remove(callRef());
+    const pc = makeCallPc();
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await set(callRef(), { caller: role, status: "ringing", offer: JSON.stringify(offer), ts: Date.now() });
+    setCallUI("Calling…", false);
+    callRingTimer = setTimeout(() => {
+      if (callPc && callPc.connectionState !== "connected") endCall();
+    }, 45000);
+  } catch (e) {
+    console.error(e);
+    endCall();
+    alert("Could not start the call. Check camera/mic permissions.");
+  }
+}
+
+function initCall() {
+  onValue(callRef(), (snap) => {
+    const c = snap.val();
+    if (!c) {
+      if (callPc || callIncomingOffer) cleanupCall();
+      return;
+    }
+    if (c.caller !== role) {
+      if (c.status === "ringing" && !callPc && !callIncomingOffer && c.offer) {
+        if (Date.now() - (c.ts || 0) > 90000) return;
+        try { callIncomingOffer = JSON.parse(c.offer); } catch (e) { return; }
+        setCallUI(`${chatTitle.textContent || "Someone"} is calling…`, true);
+        callVibeTimer = setInterval(() => { if (navigator.vibrate) navigator.vibrate([400, 200, 400]); }, 2500);
+      }
+    } else if (c.answer && callPc && !callAnswerSet) {
+      callAnswerSet = true;
+      clearTimeout(callRingTimer);
+      callPc.setRemoteDescription(JSON.parse(c.answer))
+        .then(() => flushCallCands(callPc))
+        .catch(console.error);
+    }
+  });
+}
+
+callBtn.onclick = startCall;
+callEnd.onclick = endCall;
+
+callAccept.onclick = async () => {
+  if (!callIncomingOffer || callPc) return;
+  clearInterval(callVibeTimer);
+  try {
+    callAccept.style.display = "none";
+    callStatus.textContent = "Connecting…";
+    const offer = callIncomingOffer;
+    callStream = await getCallMedia();
+    localCallVideo.srcObject = callStream;
+    const pc = makeCallPc();
+    await pc.setRemoteDescription(offer);
+    flushCallCands(pc);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await update(callRef(), { answer: JSON.stringify(answer), status: "active" });
+  } catch (e) {
+    console.error(e);
+    endCall();
+    alert("Could not join the call. Check camera/mic permissions.");
+  }
+};
+
+callMute.onclick = () => {
+  if (!callStream) return;
+  const tracks = callStream.getAudioTracks();
+  if (!tracks.length) return;
+  const on = !tracks[0].enabled;
+  tracks.forEach(t => t.enabled = on);
+  callMute.classList.toggle("off", !on);
+  callMute.textContent = on ? "Mute" : "Unmute";
+};
+
+callCam.onclick = () => {
+  if (!callStream) return;
+  const tracks = callStream.getVideoTracks();
+  if (!tracks.length) return;
+  const on = !tracks[0].enabled;
+  tracks.forEach(t => t.enabled = on);
+  callCam.classList.toggle("off", !on);
+  callCam.textContent = on ? "Camera" : "Cam off";
+};
+
+callFlip.onclick = async () => {
+  if (!callStream || !callPc) return;
+  const old = callStream.getVideoTracks()[0];
+  if (!old) return;
+  callFacing = callFacing === "user" ? "environment" : "user";
+  try {
+    old.stop();
+    const ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: callFacing } } });
+    const nt = ns.getVideoTracks()[0];
+    const sender = callPc.getSenders().find(s => s.track && s.track.kind === "video");
+    if (sender) await sender.replaceTrack(nt);
+    callStream.removeTrack(old);
+    callStream.addTrack(nt);
+    localCallVideo.srcObject = callStream;
+    localCallVideo.style.transform = callFacing === "user" ? "scaleX(-1)" : "none";
+  } catch (e) { console.error(e); }
+};
+
+window.addEventListener("pagehide", () => {
+  if (callPc && roomCode) remove(callRef()).catch(() => {});
+});
 
 /* CLEAR */
 document.getElementById("clear").onclick = async () => {
