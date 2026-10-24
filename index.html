@@ -474,17 +474,19 @@ body{
 .input{
   padding:10px 16px;
     padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
-    border-top:1px solid var(--border);
+        border-top:none;
     display:flex;
     gap:12px;
     align-items:center;
-          background:var(--bg);
+          background:rgba(0,0,0,0.45);
+          backdrop-filter:blur(10px);
+          -webkit-backdrop-filter:blur(10px);
         }
     textarea{
       flex:1;
-      background:var(--panel);
-        border:1px solid var(--border);
-        outline:none;
+      background:rgba(255,255,255,0.1);
+              border:none;
+              outline:none;
         color:var(--text);
         padding:10px 16px;
         border-radius:22px;
@@ -493,7 +495,7 @@ body{
   font-size:14px;
   transition:border-color .15s ease;
 }
-textarea:focus{border-color:var(--right)}
+textarea:focus{border:none;outline:none}
 textarea::placeholder{color:var(--text);opacity:.4}
 .icon{
   width:32px;height:32px;border-radius:50%;
