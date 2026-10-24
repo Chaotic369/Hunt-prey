@@ -250,7 +250,7 @@ body{
 /* INPUT ACTION BANNER (REPLY/EDIT) */
 .input-action-banner{
   padding:8px 16px;
-  background:var(--border);
+  background:rgba(0,0,0,0.4);
   border-top:1px solid var(--border);
   display:flex;
   justify-content:space-between;
@@ -350,7 +350,7 @@ body{
 .rec-cancel-btn{
   width:28px;height:28px;
   border-radius:50%;
-  background:var(--panel);
+  background:transparent;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -428,16 +428,17 @@ body{
 .attachment-menu{
   position:absolute;
   bottom:100%;
-  left:10px;
-  margin-bottom:10px;
-  background:var(--sheet);
-  border-radius:16px;
+  left:12px;
+  margin-bottom:8px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:14px;
   display:none;
   flex-direction:column;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  box-shadow:none;
   z-index:20;
   overflow:hidden;
-  width:160px;
+  width:140px;
   animation:pop 0.2s cubic-bezier(0.18,0.89,0.32,1.28);
 }
 .attachment-menu.show{display:flex;}
@@ -445,10 +446,10 @@ body{
   display:flex;
   align-items:center;
   gap:12px;
-  padding:14px 16px;
-  color:var(--text);
-  font-size:14px;
-  font-weight:500;
+  padding:10px 14px;
+    color:var(--text);
+    font-size:13px;
+    font-weight:500;
   cursor:pointer;
   border-bottom:1px solid var(--border);
 }
@@ -457,32 +458,41 @@ body{
 
 /* INPUT */
 .input{
-  padding:10px;
-  border-top:none;
+  padding:10px 16px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--border);
   display:flex;
-  gap:8px;
+  gap:12px;
   align-items:center;
   background:rgba(0,0,0,0.4);
 }
 textarea{
   flex:1;
-  background:var(--panel);
+  background:transparent;
   border:none;
+  border-bottom:1px solid var(--border);
   outline:none;
   color:var(--text);
-  padding:12px 16px;
-  border-radius:22px;
+  padding:9px 2px;
+  border-radius:0;
   resize:none;
   font-family:inherit;
+  font-size:14px;
+  transition:border-color .15s ease;
 }
+textarea:focus{border-bottom-color:var(--right)}
+textarea::placeholder{color:var(--text);opacity:.4}
 .icon{
-  width:42px;height:42px;border-radius:50%;
-  background:var(--panel);
+  width:32px;height:32px;border-radius:50%;
+  background:transparent;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
-  font-size:20px;
+  font-size:18px;
+  flex-shrink:0;
+  transition:transform .15s ease,opacity .15s ease;
 }
-.send{background:var(--right);color:#fff}
+.icon:active{transform:scale(.9);opacity:.6}
+.send{background:transparent;color:var(--right)}
 
 /* VIDEO CALL */
 .call-overlay{position:fixed;inset:0;background:#000;display:none;z-index:1500;flex-direction:column}
