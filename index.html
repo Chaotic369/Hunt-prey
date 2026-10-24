@@ -2748,7 +2748,29 @@ callSpeakerBtn.textContent = "Speaker";
 callEnd.parentNode.insertBefore(callSpeakerBtn, callEnd);
 
 function setCallSpeaker(on) {
-  c
+  callSpeakerOn = on;
+  callSpeakerBtn.classList.toggle("off", on);
+  callSpeakerBtn.textContent = on ? "Speaker on" : "Speaker";
+  remoteVideo.muted = false;
+  remoteVideo.volume = 1;
+  if (remoteVideo.setSinkId) remoteVideo.setSinkId("").catch(() => {});
+}
+callSpeakerBtn.onclick = () => {
+  if (callSpeakerOn) { setCallSpeaker(false); return; }
+  askCallWarn("Turn on speaker?", "Anyone nearby will be able to hear the call.", "Speaker on", () => setCallSpeaker(true));
+};
+
+/* Camera warning (capture phase so the existing camera handler only runs after confirming) */
+callCam.parentNode.addEventListener("click", (e) => {
+  if (e.target !== callCam || callCamConfirmed || callLocalVideoOn) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  askCallWarn("Turn on camera?", "They will be able to see you.", "Camera on", () => {
+    callCamConfirmed = true;
+    callCam.click();
+    callCamConfirmed = false;
+  });
+}, true);
 
 /* Use the app's current wallpaper as the call backdrop, with a dark scrim for readability */
 function applyCallBackdrop() {
@@ -2806,6 +2828,7 @@ function syncCallCamUI() {
 }
 
 function setCallUI(txt, incoming) {
+  if (callSpeakerOn) setCallSpeaker(false);
   callStatus.textContent = txt;
   applyCallBackdrop();
   callAccept.style.display = incoming ? "" : "none";
