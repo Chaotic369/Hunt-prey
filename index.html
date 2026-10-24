@@ -671,6 +671,10 @@ textarea{
 .av-item:active{opacity:.6;transform:scale(.94)}
 .av-actions{display:flex;border-top:1px solid var(--border);margin-top:12px}
 .av-actions button{flex:1;padding:9px 0;background:transparent;border:none;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;opacity:.6}
+.av-actions button.av-own{color:var(--right);opacity:1;font-weight:700;border-right:1px solid var(--border)}
+.av-actions button:active{opacity:.4}
+.av-grid.wp-grid{grid-template-columns:repeat(4,1fr)}
+.av-item.wp-item{aspect-ratio:3/4;border-radius:10px}
 .popup-title{
   font-size:14px;
     font-weight:700;
@@ -954,7 +958,7 @@ textarea{
           <input type="file" hidden id="myAvatarInput" accept="image/*">
           <div class="wallpaper-preview" id="myAvatarPreview"></div>
           <button class="wallpaper-choose-btn" id="myAvatarBtn">Choose</button>
-                    <button class="wallpaper-choose-btn" id="myAvatarCuteBtn">Cute</button>
+                    
           <div class="wallpaper-remove-btn" id="myAvatarRemoveBtn" title="Remove avatar" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
         </div>
 
@@ -1761,7 +1765,7 @@ function cuteAvatarUrl(a) {
 
 const cuteAvatarOverlay = document.createElement("div");
 cuteAvatarOverlay.className = "av-overlay";
-cuteAvatarOverlay.innerHTML = `<div class="av-box"><div class="av-title">Pick an avatar</div><div class="av-grid" id="cuteAvatarGrid"></div><div class="av-actions"><button id="cuteAvatarClose">Close</button></div></div>`;
+cuteAvatarOverlay.innerHTML = `<div class="av-box"><div class="av-title">Pick an avatar</div><div class="av-grid" id="cuteAvatarGrid"></div><div class="av-actions"><button class="av-own" id="cuteAvatarOwn">Choose your own</button><button id="cuteAvatarClose">Close</button></div></div>`;
 document.body.appendChild(cuteAvatarOverlay);
 
 const cuteAvatarGrid = cuteAvatarOverlay.querySelector("#cuteAvatarGrid");
@@ -1778,7 +1782,70 @@ CUTE_AVATARS.forEach(a => {
   cuteAvatarGrid.appendChild(b);
 });
 
-document.getElementById("myAvatarCuteBtn").onclick = () => cuteAvatarOverlay.classList.add("show");
+cuteAvatarOverlay.querySelector("#cuteAvatarOwn").onclick = () => {
+  cuteAvatarOverlay.classList.remove("show");
+  document.getElementById("myAvatarInput").click();
+};
+
+/* CUTE WALLPAPERS + THEMES */
+const wpHeart = (x, y, s, f, o) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 -3C-6 -10 -14 -2 0 8C14 -2 6 -10 0 -3Z" fill="${f}" opacity="${o}"/>`;
+const wpStar = (x, y, s, f, o) => `<polygon transform="translate(${x} ${y}) scale(${s})" points="0,-8 2.4,-2.5 8,-2.5 3.6,1.2 5,7 0,3.6 -5,7 -3.6,1.2 -8,-2.5 -2.4,-2.5" fill="${f}" opacity="${o}"/>`;
+const wpDot = (x, y, r, f, o) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" opacity="${o}"/>`;
+const wpCloud = (x, y) => `<g fill="#fff" opacity=".7" transform="translate(${x} ${y})"><ellipse cx="0" cy="0" rx="10" ry="5"/><ellipse cx="-5" cy="-4" rx="5" ry="4"/><ellipse cx="4" cy="-5" rx="6" ry="5"/></g>`;
+const wpPaw = (x, y, s, f, o) => `<g transform="translate(${x} ${y}) scale(${s})" fill="${f}" opacity="${o}"><ellipse cx="0" cy="4" rx="6" ry="5"/><circle cx="-7" cy="-4" r="2.6"/><circle cx="-2.5" cy="-8" r="2.6"/><circle cx="2.5" cy="-8" r="2.6"/><circle cx="7" cy="-4" r="2.6"/></g>`;
+const wpDaisy = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">` + [0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="0" cy="-6" rx="3" ry="5" fill="#fff" opacity=".85" transform="rotate(${a})"/>`).join("") + `<circle r="3" fill="#ffb300"/></g>`;
+
+const CUTE_WALLPAPERS = [
+  { name: "Sakura", c1: "#ffe3ee", c2: "#ffc2d9", accent: "#ec6fa0", tile: wpHeart(20, 20, 1.3, "#fff", .6) + wpHeart(60, 60, 1, "#ff8fb8", .5) },
+  { name: "Cotton Candy", c1: "#c9e8ff", c2: "#f3c9ff", accent: "#a47cf0", tile: wpCloud(22, 24) + wpCloud(60, 62) },
+  { name: "Mint", c1: "#d9f7e8", c2: "#bfeedd", accent: "#3fbf94", tile: wpDot(20, 20, 4, "#fff", .7) + wpDot(60, 60, 3, "#7fd9b5", .6) + wpDot(62, 18, 2, "#fff", .7) },
+  { name: "Peachy", c1: "#ffe5cf", c2: "#ffc9a8", accent: "#f08a4b", tile: wpStar(20, 20, 1.2, "#fff", .7) + wpStar(60, 58, .9, "#ff9d5c", .5) },
+  { name: "Paw Prints", c1: "#fff3d6", c2: "#ffe2a8", accent: "#c98a4b", tile: wpPaw(22, 22, 1, "#b9722f", .35) + wpPaw(60, 60, 1, "#b9722f", .25) },
+  { name: "Starry Night", c1: "#2a2f6b", c2: "#6a4aa8", accent: "#9b8cff", tile: wpStar(15, 20, .5, "#fff", .9) + wpStar(55, 35, .8, "#fff", .8) + wpStar(30, 65, .6, "#ffe9a8", .9) + wpStar(70, 70, .4, "#fff", .7) },
+  { name: "Lavender", c1: "#efe3ff", c2: "#d6c2ff", accent: "#8f6cf0", tile: wpHeart(20, 20, 1.2, "#fff", .6) + wpHeart(58, 56, .9, "#b79cff", .5) },
+  { name: "Daisy", c1: "#fff9c4", c2: "#ffeb7a", accent: "#f2b705", tile: wpDaisy(22, 22, 1) + wpDaisy(60, 60, .8) }
+];
+
+function cuteWallpaperUrl(w) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="800" viewBox="0 0 400 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${w.c1}"/><stop offset="1" stop-color="${w.c2}"/></linearGradient><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse">${w.tile}</pattern></defs><rect width="400" height="800" fill="url(#g)"/><rect width="400" height="800" fill="url(#p)"/></svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+const cuteWallpaperOverlay = document.createElement("div");
+cuteWallpaperOverlay.className = "av-overlay";
+cuteWallpaperOverlay.innerHTML = `<div class="av-box"><div class="av-title">Pick a wallpaper</div><div class="av-grid wp-grid" id="cuteWallpaperGrid"></div><div class="av-actions"><button class="av-own" id="cuteWallpaperOwn">Choose your own</button><button id="cuteWallpaperClose">Close</button></div></div>`;
+document.body.appendChild(cuteWallpaperOverlay);
+
+const cuteWallpaperGrid = cuteWallpaperOverlay.querySelector("#cuteWallpaperGrid");
+CUTE_WALLPAPERS.forEach(w => {
+  const url = cuteWallpaperUrl(w);
+  const b = document.createElement("button");
+  b.className = "av-item wp-item";
+  b.title = w.name;
+  b.style.backgroundImage = `url('${url}')`;
+  b.onclick = () => {
+    update(ref(db, `rooms/${roomCode}/settings`), { wallpaper: url, color: w.accent }).catch(console.error);
+    cuteWallpaperOverlay.classList.remove("show");
+  };
+  cuteWallpaperGrid.appendChild(b);
+});
+
+cuteWallpaperOverlay.querySelector("#cuteWallpaperOwn").onclick = () => {
+  cuteWallpaperOverlay.classList.remove("show");
+  document.getElementById("wallpaperInput").click();
+};
+cuteWallpaperOverlay.querySelector("#cuteWallpaperClose").onclick = () => cuteWallpaperOverlay.classList.remove("show");
+cuteWallpaperOverlay.onclick = (e) => {
+  if (e.target === cuteWallpaperOverlay) cuteWallpaperOverlay.classList.remove("show");
+};
+
+/* Choose buttons now open the pickers (capture phase, so the old direct file-picker handlers don't fire) */
+document.getElementById("settingsModal").addEventListener("click", (e) => {
+  const t = e.target.closest ? e.target.closest("#myAvatarBtn, #wallpaperBtn") : null;
+  if (!t) return;
+  e.stopPropagation();
+  (t.id === "myAvatarBtn" ? cuteAvatarOverlay : cuteWallpaperOverlay).classList.add("show");
+}, true);
 cuteAvatarOverlay.querySelector("#cuteAvatarClose").onclick = () => cuteAvatarOverlay.classList.remove("show");
 cuteAvatarOverlay.onclick = (e) => {
   if (e.target === cuteAvatarOverlay) cuteAvatarOverlay.classList.remove("show");
