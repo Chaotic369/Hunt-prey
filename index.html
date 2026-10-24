@@ -494,11 +494,26 @@ textarea{
 .call-overlay.voice-only #callFlip{display:none}
 #localCallVideo{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:96px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:#111;transform:scaleX(-1);z-index:2}
 .call-status{position:absolute;top:calc(env(safe-area-inset-top,0px) + 24px);left:0;right:0;text-align:center;font-size:16px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);z-index:2;pointer-events:none}
+.call-incoming-info{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:1;pointer-events:none;padding-bottom:120px}
+.call-incoming-avatar{width:110px;height:110px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px;animation:callRing 1.8s ease-out infinite}
+.call-incoming-avatar svg{width:48px;height:48px;opacity:.7}
+.call-incoming-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.call-incoming-name{font-size:26px;font-weight:700;letter-spacing:-.3px}
+.call-incoming-label{font-size:14px;opacity:.6}
+@keyframes callRing{0%{box-shadow:0 0 0 0 rgba(255,255,255,.28)}100%{box-shadow:0 0 0 38px rgba(255,255,255,0)}}
+.call-overlay.incoming{background:radial-gradient(ellipse at 50% 30%,#1c1c1c 0%,#000 75%)}
+.call-overlay.incoming .call-incoming-info{display:flex}
+.call-overlay.incoming #remoteVideo,.call-overlay.incoming #localCallVideo,.call-overlay.incoming .call-status{display:none}
+.call-overlay.incoming #callMute,.call-overlay.incoming #callCam,.call-overlay.incoming #callFlip{display:none}
+.call-overlay.incoming .call-controls{gap:28px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
+.call-overlay.incoming .call-btn{padding:16px 34px;font-size:16px;border-radius:32px;min-width:120px}
+.call-overlay.incoming #callEnd{order:-1}
 .call-controls{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);left:0;right:0;display:flex;justify-content:center;flex-wrap:wrap;gap:10px;padding:0 12px;z-index:2}
 .call-btn{padding:12px 18px;border:none;border-radius:24px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .call-btn.off{background:rgba(255,255,255,.45);color:#000}
 .call-btn.accept{background:#22c55e}
 .call-btn.end{background:#ef4444}
+.call-btn:active{transform:scale(.95)}
 
 /* VIEWER */
 .viewer{
@@ -819,6 +834,11 @@ textarea{
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localCallVideo" autoplay playsinline muted></video>
     <div class="call-status" id="callStatus">Calling…</div>
+        <div class="call-incoming-info">
+          <div class="call-incoming-avatar" id="callIncomingAvatar"></div>
+          <div class="call-incoming-name" id="callIncomingName"></div>
+          <div class="call-incoming-label" id="callIncomingLabel"></div>
+        </div>
     <div class="call-controls">
       <button class="call-btn accept" id="callAccept" style="display:none;">Accept</button>
       <button class="call-btn" id="callMute">Mute</button>
@@ -2365,6 +2385,9 @@ const callMute = document.getElementById("callMute");
 const callCam = document.getElementById("callCam");
 const callFlip = document.getElementById("callFlip");
 const callEnd = document.getElementById("callEnd");
+const callIncomingAvatar = document.getElementById("callIncomingAvatar");
+const callIncomingName = document.getElementById("callIncomingName");
+const callIncomingLabel = document.getElementById("callIncomingLabel");
 
 function callRef(p) { return ref(db, `rooms/${roomCode}/call${p ? "/" + p : ""}`); }
 
@@ -2384,7 +2407,14 @@ function syncCallCamUI() {
 function setCallUI(txt, incoming) {
   callStatus.textContent = txt;
   callAccept.style.display = incoming ? "" : "none";
-  callOverlay.classList.add("show");
+    callOverlay.classList.toggle("incoming", !!incoming);
+    callEnd.textContent = incoming ? "Decline" : "End";
+    if (incoming) {
+      callIncomingName.textContent = chatTitle.textContent || "Someone";
+      callIncomingLabel.textContent = callIncomingVideo ? "Incoming video call" : "Incoming voice call";
+      callIncomingAvatar.innerHTML = partnerAvatar.innerHTML;
+    }
+    callOverlay.classList.add("show");
 }
 
 function cleanupCall() {
@@ -2531,7 +2561,9 @@ callAccept.onclick = async () => {
   clearInterval(callVibeTimer);
   try {
     callAccept.style.display = "none";
-    callStatus.textContent = "Connecting…";
+        callOverlay.classList.remove("incoming");
+        callEnd.textContent = "End";
+        callStatus.textContent = "Connecting…";
     const offer = callIncomingOffer;
     callStream = await getCallMedia(callIncomingVideo);
         localCallVideo.srcObject = callStream;
