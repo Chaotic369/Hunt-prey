@@ -186,8 +186,10 @@ body{
   position:fixed;
   inset:0;
   background:var(--overlay);
-  z-index:3000;
-  display:none;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    z-index:3000;
+    display:none;
 }
 .context-menu{
   position:absolute;
@@ -199,13 +201,14 @@ body{
 }
 @keyframes pop{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
 .ig-reaction-capsule{
-  background:var(--sheet);
-  border-radius:32px;
-  padding:10px 14px;
-  display:flex;
-  justify-content:space-between;
-  font-size:22px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:32px;
+    padding:10px 14px;
+    display:flex;
+    justify-content:space-between;
+    font-size:22px;
+    box-shadow:none;
   user-select:none;
   -webkit-user-select:none;
   -webkit-touch-callout:none;
@@ -221,8 +224,9 @@ body{
 .ig-reaction-capsule span:active{transform:scale(1.4)}
 .ig-action-sheet{
   width:100%;
-  background:var(--sheet);
-  border-radius:18px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:14px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
