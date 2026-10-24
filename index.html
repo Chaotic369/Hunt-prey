@@ -1983,7 +1983,7 @@ function render(msgs) {
                       </div>`;
                     } else if (m.viewOnce) {
                                           const voMine = m.sender === role;
-                                          const voLabel = m.viewed ? "Opened" : (voMine ? "Photo · View once" : "Tap to view");
+                                          const voLabel = m.viewed ? "Opened" : (voMine ? "Photo" : "Tap to view");
                                           content = `<div class="media vo-card${m.viewed ? " vo-done" : ""}" data-i="${i}">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ${m.viewed ? "" : 'stroke-dasharray="3 3"'}><circle cx="12" cy="12" r="10"></circle>${m.viewed ? "" : '<text x="12" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor" stroke="none">1</text>'}</svg>
                                             <span>${voLabel}</span>
@@ -2066,7 +2066,7 @@ function setReplyTarget(msg) {
   replyingTo = {
     id: msg.id,
     sender: msg.sender,
-    text: msg.type === "text" ? msg.text : (msg.type === "voice" ? "🎤 Voice message" : (msg.viewOnce ? "📷 View once photo" : "📷 Media"))
+    text: msg.type === "text" ? msg.text : (msg.type === "voice" ? "🎤 Voice message" : "📷 Media")
   };
   editingMessageId = null;
   bannerTitle.textContent = `Replying to ${msg.sender === role ? 'yourself' : msg.sender}`;
