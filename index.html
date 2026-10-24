@@ -1310,8 +1310,14 @@ function initChat() {
             chatTitle.textContent = theirName;
     
             if (document.activeElement !== pinUpdateInput) {
-                      pinUpdateInput.value = s.pin || roomCode;
-                    }
+                                  pinUpdateInput.value = s.pin || roomCode;
+                                }
+
+                        // Sync Allowed Rooms
+                        if (typeof s.allowedRooms === "string") {
+                          localStorage.setItem("hp_allowed_rooms", s.allowedRooms);
+                          if (document.activeElement !== allowedRoomsInput) allowedRoomsInput.value = s.allowedRooms;
+                        }
     
             // Sync Color
         const activeColor = s.color || (themeIndex === 0 ? "#3797f0" : "#1d6fd1");
@@ -1477,7 +1483,11 @@ pinUpdateInput.onchange = async () => {
 
 allowedRoomsInput.value = localStorage.getItem("hp_allowed_rooms") || "2007";
 allowedRoomsInput.onchange = () => {
-  localStorage.setItem("hp_allowed_rooms", allowedRoomsInput.value.trim());
+  const val = allowedRoomsInput.value.trim();
+  localStorage.setItem("hp_allowed_rooms", val);
+  if (roomCode) {
+    update(ref(db, `rooms/${roomCode}/settings`), { allowedRooms: val }).catch(err => console.error(err));
+  }
 };
 
 /* SETTINGS MODAL */
