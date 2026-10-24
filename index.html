@@ -662,6 +662,15 @@ textarea{
   animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15);
 }
 @keyframes popupIn{from{transform:scale(0.92);opacity:0}to{transform:scale(1);opacity:1}}
+.av-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:2100;padding:16px}
+.av-overlay.show{display:flex}
+.av-box{width:100%;max-width:280px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px 12px 6px;animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15)}
+.av-title{font-size:14px;font-weight:700;letter-spacing:-0.2px;margin:0 2px 10px}
+.av-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 2px}
+.av-item{aspect-ratio:1/1;border-radius:50%;border:1px solid var(--border);background-size:cover;background-position:center;cursor:pointer;padding:0}
+.av-item:active{opacity:.6;transform:scale(.94)}
+.av-actions{display:flex;border-top:1px solid var(--border);margin-top:12px}
+.av-actions button{flex:1;padding:9px 0;background:transparent;border:none;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;opacity:.6}
 .popup-title{
   font-size:14px;
     font-weight:700;
@@ -945,6 +954,7 @@ textarea{
           <input type="file" hidden id="myAvatarInput" accept="image/*">
           <div class="wallpaper-preview" id="myAvatarPreview"></div>
           <button class="wallpaper-choose-btn" id="myAvatarBtn">Choose</button>
+                    <button class="wallpaper-choose-btn" id="myAvatarCuteBtn">Cute</button>
           <div class="wallpaper-remove-btn" id="myAvatarRemoveBtn" title="Remove avatar" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
         </div>
 
@@ -1725,6 +1735,53 @@ document.getElementById("cpApply").onclick = () => {
   if (hex.toLowerCase() === cpOriginal.toLowerCase()) return;
   update(ref(db, `rooms/${roomCode}/settings`), { color: hex }).catch(console.error);
   push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "color", sender: role, time: Date.now() }).catch(console.error);
+};
+
+/* CUTE PRESET AVATARS */
+const CUTE_EYES = `<circle cx="38" cy="55" r="4.5" fill="#2b2b2b"/><circle cx="62" cy="55" r="4.5" fill="#2b2b2b"/><circle cx="39.6" cy="53.4" r="1.5" fill="#fff"/><circle cx="63.6" cy="53.4" r="1.5" fill="#fff"/>`;
+const CUTE_BLUSH = `<ellipse cx="29" cy="64" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/><ellipse cx="71" cy="64" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/>`;
+const CUTE_SMILE = `<path d="M44 64 Q50 70 56 64" stroke="#2b2b2b" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+const CUTE_AVATARS = [
+  { name: "Cat", bg: "#ffd6e0", body: `<polygon points="22,42 28,10 47,30" fill="#ffb86b"/><polygon points="78,42 72,10 53,30" fill="#ffb86b"/><polygon points="28,34 31,19 40,29" fill="#ff9eb5"/><polygon points="72,34 69,19 60,29" fill="#ff9eb5"/><circle cx="50" cy="56" r="31" fill="#ffb86b"/><path d="M50 26 V36 M42 28 V36 M58 28 V36" stroke="#e8964a" stroke-width="3" stroke-linecap="round"/>${CUTE_EYES}<polygon points="47,60 53,60 50,64" fill="#ff7a9c"/>${CUTE_SMILE}${CUTE_BLUSH}<path d="M20 60 H32 M20 66 H32 M80 60 H68 M80 66 H68" stroke="#7a5a3a" stroke-width="1.5" stroke-linecap="round"/>` },
+  { name: "Dog", bg: "#d6ecff", body: `<ellipse cx="24" cy="52" rx="11" ry="20" fill="#9c6b43" transform="rotate(12 24 52)"/><ellipse cx="76" cy="52" rx="11" ry="20" fill="#9c6b43" transform="rotate(-12 76 52)"/><circle cx="50" cy="56" r="29" fill="#f5deb3"/><ellipse cx="36" cy="50" rx="9" ry="10" fill="#d9a066" opacity=".6"/>${CUTE_EYES}<ellipse cx="50" cy="63" rx="8" ry="6" fill="#fff"/><ellipse cx="50" cy="60" rx="4.5" ry="3" fill="#2b2b2b"/><path d="M50 63 V67 M44 68 Q50 72 56 68" stroke="#2b2b2b" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="55" cy="72" rx="3.5" ry="4" fill="#ff7a9c"/>${CUTE_BLUSH}` },
+  { name: "Bunny", bg: "#e8e0ff", body: `<ellipse cx="36" cy="26" rx="9" ry="22" fill="#fff"/><ellipse cx="64" cy="26" rx="9" ry="22" fill="#fff"/><ellipse cx="36" cy="27" rx="4.5" ry="15" fill="#ffc2d4"/><ellipse cx="64" cy="27" rx="4.5" ry="15" fill="#ffc2d4"/><circle cx="50" cy="60" r="29" fill="#fff"/>${CUTE_EYES.replace(/55/g, "59")}<polygon points="47,63 53,63 50,67" fill="#ff7a9c"/><path d="M44 68 Q50 73 56 68" stroke="#2b2b2b" stroke-width="2.2" fill="none" stroke-linecap="round"/>${CUTE_BLUSH.replace(/64/g, "68")}` },
+  { name: "Bear", bg: "#ffe9c7", body: `<circle cx="26" cy="30" r="12" fill="#b5835a"/><circle cx="74" cy="30" r="12" fill="#b5835a"/><circle cx="26" cy="30" r="6" fill="#e3b88f"/><circle cx="74" cy="30" r="6" fill="#e3b88f"/><circle cx="50" cy="56" r="31" fill="#b5835a"/><ellipse cx="50" cy="65" rx="12" ry="9" fill="#e3b88f"/>${CUTE_EYES}<ellipse cx="50" cy="62" rx="4.5" ry="3" fill="#2b2b2b"/><path d="M50 65 V68 M45 69 Q50 72 55 69" stroke="#2b2b2b" stroke-width="2" fill="none" stroke-linecap="round"/>${CUTE_BLUSH}` },
+  { name: "Panda", bg: "#d9f5e3", body: `<circle cx="26" cy="30" r="12" fill="#2b2b2b"/><circle cx="74" cy="30" r="12" fill="#2b2b2b"/><circle cx="50" cy="56" r="31" fill="#fff"/><ellipse cx="37" cy="54" rx="8" ry="10" fill="#2b2b2b" transform="rotate(20 37 54)"/><ellipse cx="63" cy="54" rx="8" ry="10" fill="#2b2b2b" transform="rotate(-20 63 54)"/><circle cx="37" cy="54" r="3.5" fill="#fff"/><circle cx="63" cy="54" r="3.5" fill="#fff"/><circle cx="37.5" cy="54" r="2" fill="#2b2b2b"/><circle cx="62.5" cy="54" r="2" fill="#2b2b2b"/><ellipse cx="50" cy="64" rx="4.5" ry="3" fill="#2b2b2b"/><path d="M45 69 Q50 73 55 69" stroke="#2b2b2b" stroke-width="2" fill="none" stroke-linecap="round"/>${CUTE_BLUSH}` },
+  { name: "Fox", bg: "#ffe0cc", body: `<polygon points="18,44 24,8 46,30" fill="#f2812b"/><polygon points="82,44 76,8 54,30" fill="#f2812b"/><polygon points="25,34 27,19 38,29" fill="#2b2b2b"/><polygon points="75,34 73,19 62,29" fill="#2b2b2b"/><path d="M50 88 L14 56 Q12 32 50 30 Q88 32 86 56 Z" fill="#f2812b"/><path d="M50 88 L22 62 Q36 56 50 66 Q64 56 78 62 Z" fill="#fff"/>${CUTE_EYES}<ellipse cx="50" cy="73" rx="4" ry="3" fill="#2b2b2b"/>${CUTE_BLUSH.replace(/64/g, "62")}` },
+  { name: "Penguin", bg: "#d6f0ff", body: `<ellipse cx="50" cy="56" rx="31" ry="34" fill="#34415a"/><ellipse cx="50" cy="64" rx="21" ry="24" fill="#fff"/>${CUTE_EYES.replace(/55/g, "50").replace(/53\.4/g, "48.4")}<polygon points="43,56 57,56 50,64" fill="#ffa726"/><ellipse cx="29" cy="60" rx="4.5" ry="3" fill="#ff9eb5" opacity=".7"/><ellipse cx="71" cy="60" rx="4.5" ry="3" fill="#ff9eb5" opacity=".7"/><ellipse cx="38" cy="90" rx="8" ry="4" fill="#ffa726"/><ellipse cx="62" cy="90" rx="8" ry="4" fill="#ffa726"/>` },
+  { name: "Frog", bg: "#e6ffd6", body: `<circle cx="32" cy="34" r="13" fill="#6fcf5a"/><circle cx="68" cy="34" r="13" fill="#6fcf5a"/><circle cx="32" cy="34" r="8" fill="#fff"/><circle cx="68" cy="34" r="8" fill="#fff"/><circle cx="33" cy="35" r="4.5" fill="#2b2b2b"/><circle cx="67" cy="35" r="4.5" fill="#2b2b2b"/><circle cx="34.5" cy="33.5" r="1.5" fill="#fff"/><circle cx="68.5" cy="33.5" r="1.5" fill="#fff"/><ellipse cx="50" cy="62" rx="34" ry="28" fill="#6fcf5a"/><path d="M34 64 Q50 78 66 64" stroke="#2b2b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="45" cy="55" r="1.6" fill="#2b2b2b"/><circle cx="55" cy="55" r="1.6" fill="#2b2b2b"/><ellipse cx="24" cy="66" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/><ellipse cx="76" cy="66" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/>` },
+  { name: "Chick", bg: "#fff6bf", body: `<path d="M50 14 Q44 22 50 28 Q56 22 50 14 Z" fill="#ffd23f" transform="rotate(-20 50 28)"/><circle cx="50" cy="58" r="32" fill="#ffd23f"/>${CUTE_EYES.replace(/55/g, "52").replace(/53\.4/g, "50.4")}<polygon points="43,58 57,58 50,67" fill="#ff8c1a"/><ellipse cx="27" cy="62" rx="5" ry="3" fill="#ff9eb5" opacity=".8"/><ellipse cx="73" cy="62" rx="5" ry="3" fill="#ff9eb5" opacity=".8"/>` },
+  { name: "Anime", bg: "#ffd9ec", body: `<circle cx="50" cy="52" r="36" fill="#ff8fc7"/><rect x="14" y="52" width="14" height="38" rx="7" fill="#ff8fc7"/><rect x="72" y="52" width="14" height="38" rx="7" fill="#ff8fc7"/><ellipse cx="50" cy="58" rx="26" ry="28" fill="#ffe3d0"/><path d="M22 54 Q26 24 50 24 Q74 24 78 54 Q64 40 56 34 Q46 46 22 54 Z" fill="#ff8fc7"/><ellipse cx="38" cy="60" rx="6.5" ry="8.5" fill="#7a4dff"/><ellipse cx="62" cy="60" rx="6.5" ry="8.5" fill="#7a4dff"/><ellipse cx="38" cy="62" rx="3.5" ry="5" fill="#3b1d99"/><ellipse cx="62" cy="62" rx="3.5" ry="5" fill="#3b1d99"/><circle cx="40" cy="57" r="2.6" fill="#fff"/><circle cx="64" cy="57" r="2.6" fill="#fff"/><circle cx="36" cy="64" r="1.2" fill="#fff"/><circle cx="60" cy="64" r="1.2" fill="#fff"/><path d="M30 52 Q38 49 45 52 M55 52 Q62 49 70 52" stroke="#5a2d6e" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="30" cy="70" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/><ellipse cx="70" cy="70" rx="5" ry="3" fill="#ff9eb5" opacity=".7"/><path d="M46 74 Q50 77 54 74" stroke="#c0485f" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="80,26 82,32 88,34 82,36 80,42 78,36 72,34 78,32" fill="#fff" opacity=".9"/>` }
+];
+
+function cuteAvatarUrl(a) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${a.bg}"/>${a.body}</svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+const cuteAvatarOverlay = document.createElement("div");
+cuteAvatarOverlay.className = "av-overlay";
+cuteAvatarOverlay.innerHTML = `<div class="av-box"><div class="av-title">Pick an avatar</div><div class="av-grid" id="cuteAvatarGrid"></div><div class="av-actions"><button id="cuteAvatarClose">Close</button></div></div>`;
+document.body.appendChild(cuteAvatarOverlay);
+
+const cuteAvatarGrid = cuteAvatarOverlay.querySelector("#cuteAvatarGrid");
+CUTE_AVATARS.forEach(a => {
+  const url = cuteAvatarUrl(a);
+  const b = document.createElement("button");
+  b.className = "av-item";
+  b.title = a.name;
+  b.style.backgroundImage = `url('${url}')`;
+  b.onclick = () => {
+    set(ref(db, `rooms/${roomCode}/settings/avatars/${role}`), url).catch(console.error);
+    cuteAvatarOverlay.classList.remove("show");
+  };
+  cuteAvatarGrid.appendChild(b);
+});
+
+document.getElementById("myAvatarCuteBtn").onclick = () => cuteAvatarOverlay.classList.add("show");
+cuteAvatarOverlay.querySelector("#cuteAvatarClose").onclick = () => cuteAvatarOverlay.classList.remove("show");
+cuteAvatarOverlay.onclick = (e) => {
+  if (e.target === cuteAvatarOverlay) cuteAvatarOverlay.classList.remove("show");
 };
 
 const wallpaperBtn = document.getElementById("wallpaperBtn");
