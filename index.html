@@ -494,6 +494,27 @@ textarea{
 .call-overlay.voice-only #callFlip{display:none}
 #localCallVideo{position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:96px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--border);background:#111;transform:scaleX(-1);z-index:2}
 .call-confirm{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:1600;padding:16px}
+.cp-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:2100;padding:16px}
+.cp-overlay.show{display:flex}
+.cp-box{width:100%;max-width:260px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px 12px 6px;animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15)}
+.cp-title{font-size:14px;font-weight:700;letter-spacing:-0.2px;margin:0 2px 8px}
+.cp-preview{height:56px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px}
+.cp-slider{-webkit-appearance:none;appearance:none;width:100%;height:12px;border-radius:6px;outline:none;margin:7px 0;border:1px solid var(--border);cursor:pointer;display:block}
+.cp-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.45);cursor:pointer}
+.cp-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.45);cursor:pointer}
+#cpHue{background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.cp-hex-row{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--border)}
+.cp-hex-row span{font-size:11px;font-weight:600;opacity:.65;width:56px;flex-shrink:0}
+.cp-hex-row input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:monospace;padding:2px 0}
+.cp-section{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.45;margin:10px 2px 6px}
+.cp-swatches{display:flex;flex-wrap:wrap;gap:8px;padding:0 2px}
+.cp-swatch{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);cursor:pointer;padding:0}
+.cp-swatch.active{outline:2px solid var(--text);outline-offset:1px}
+.cp-actions{display:flex;border-top:1px solid var(--border);margin-top:12px}
+.cp-actions button{flex:1;padding:9px 0;background:transparent;border:none;color:var(--text);font-size:12px;font-weight:600;cursor:pointer}
+.cp-actions button:first-child{opacity:.6;border-right:1px solid var(--border)}
+.cp-actions button:last-child{color:var(--right);font-weight:700}
+.cp-actions button:active{opacity:.5}
 .call-confirm.show{display:flex}
 .call-confirm-box{width:100%;max-width:260px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px 14px 10px;text-align:center;animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15)}
 .call-confirm-title{font-size:15px;font-weight:700;margin-bottom:4px}
@@ -914,7 +935,8 @@ textarea{
         <div class="popup-row">
               <span class="popup-row-label">Color</span>
           <div class="color-preview-dot" id="colorPreviewDot"></div>
-          <input type="color" id="colorSlider" value="#3797f0">
+          <input type="color" id="colorSlider" value="#3797f0" hidden>
+                    <button class="wallpaper-choose-btn" id="colorPickerBtn">Change</button>
         </div>
 
         <div class="popup-section">Profile</div>
@@ -956,8 +978,32 @@ textarea{
         </div>
 
     <button class="popup-done-btn" id="closeSettingsBtn">Done</button>
-  </div>
-</div>
+      </div>
+    </div>
+
+    <div class="cp-overlay" id="colorPickerModal">
+      <div class="cp-box">
+        <div class="cp-title">Color</div>
+        <div class="cp-preview" id="cpPreview"></div>
+        <input type="range" class="cp-slider" id="cpHue" min="0" max="360" value="210">
+        <input type="range" class="cp-slider" id="cpSat" min="0" max="100" value="80">
+        <input type="range" class="cp-slider" id="cpLight" min="10" max="90" value="57">
+        <div class="cp-hex-row">
+          <span>Hex</span>
+          <input type="text" id="cpHex" maxlength="7" autocomplete="off" spellcheck="false" placeholder="#3797f0">
+        </div>
+        <div id="cpRecentWrap">
+          <div class="cp-section">Recent</div>
+          <div class="cp-swatches" id="cpRecent"></div>
+        </div>
+        <div class="cp-section">Suggested</div>
+        <div class="cp-swatches" id="cpPresets"></div>
+        <div class="cp-actions">
+          <button id="cpCancel">Cancel</button>
+          <button id="cpApply">Apply</button>
+        </div>
+      </div>
+    </div>
 
 <!-- INSTAGRAM CONTEXT MENU -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1548,12 +1594,137 @@ settingsModal.onclick = (e) => {
 const colorSlider = document.getElementById("colorSlider");
 const colorPreviewDot = document.getElementById("colorPreviewDot");
 const wallpaperPreview = document.getElementById("wallpaperPreview");
-colorSlider.oninput = () => {
-  colorPreviewDot.style.background = colorSlider.value;
-  update(ref(db, `rooms/${roomCode}/settings`), { color: colorSlider.value }).catch(console.error);
+/* COLOR PICKER */
+const RECENT_COLORS_KEY = "hp_recent_colors";
+const PRESET_COLORS = ["#3797f0", "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#a855f7", "#ec4899"];
+const colorPickerModal = document.getElementById("colorPickerModal");
+const cpPreview = document.getElementById("cpPreview");
+const cpHue = document.getElementById("cpHue");
+const cpSat = document.getElementById("cpSat");
+const cpLight = document.getElementById("cpLight");
+const cpHex = document.getElementById("cpHex");
+const cpRecent = document.getElementById("cpRecent");
+const cpRecentWrap = document.getElementById("cpRecentWrap");
+const cpPresets = document.getElementById("cpPresets");
+let cpOriginal = "#3797f0";
+let cpCurrent = "#3797f0";
+
+function hexToHsl(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  let h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const x = v => Math.round(v * 255).toString(16).padStart(2, "0");
+  return "#" + x(f(0)) + x(f(8)) + x(f(4));
+}
+
+function getRecentColors() {
+  try {
+    const a = JSON.parse(localStorage.getItem(RECENT_COLORS_KEY) || "[]");
+    return Array.isArray(a) ? a.filter(c => /^#[0-9a-f]{6}$/i.test(c)) : [];
+  } catch (e) { return []; }
+}
+
+function saveRecentColor(c) {
+  try {
+    const low = c.toLowerCase();
+    const list = [low].concat(getRecentColors().filter(x => x.toLowerCase() !== low)).slice(0, 8);
+    localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(list));
+  } catch (e) { console.error(e); }
+}
+
+function previewAppColor(hex) {
+  document.documentElement.style.setProperty('--right', hex);
+  document.body.style.setProperty('--right', hex);
+}
+
+function renderSwatches(box, colors) {
+  box.innerHTML = "";
+  colors.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "cp-swatch" + (c.toLowerCase() === cpCurrent.toLowerCase() ? " active" : "");
+    b.style.background = c;
+    b.title = c;
+    b.onclick = () => cpSetFromHex(c);
+    box.appendChild(b);
+  });
+}
+
+function cpRefresh(fromHexInput) {
+  const h = +cpHue.value, s = +cpSat.value, l = +cpLight.value;
+  cpCurrent = hslToHex(h, s, l);
+  cpPreview.style.background = cpCurrent;
+  cpSat.style.background = `linear-gradient(to right, hsl(${h},0%,${l}%), hsl(${h},100%,${l}%))`;
+  cpLight.style.background = `linear-gradient(to right, #000, hsl(${h},${s}%,50%), #fff)`;
+  if (!fromHexInput) cpHex.value = cpCurrent;
+  previewAppColor(cpCurrent);
+  const recent = getRecentColors();
+  cpRecentWrap.style.display = recent.length ? "" : "none";
+  renderSwatches(cpRecent, recent);
+  renderSwatches(cpPresets, PRESET_COLORS);
+}
+
+function cpSetFromHex(hex, fromHexInput) {
+  const c = hexToHsl(hex);
+  cpHue.value = c.h;
+  cpSat.value = c.s;
+  cpLight.value = Math.min(90, Math.max(10, c.l));
+  cpRefresh(fromHexInput);
+}
+
+function openColorPicker() {
+  cpOriginal = /^#[0-9a-f]{6}$/i.test(colorSlider.value) ? colorSlider.value : "#3797f0";
+  colorPickerModal.classList.add("show");
+  cpSetFromHex(cpOriginal);
+}
+
+function closeColorPicker(revert) {
+  colorPickerModal.classList.remove("show");
+  if (revert) previewAppColor(colorSlider.value);
+}
+
+cpHue.oninput = () => cpRefresh();
+cpSat.oninput = () => cpRefresh();
+cpLight.oninput = () => cpRefresh();
+cpHex.oninput = () => {
+  const v = cpHex.value.trim();
+  if (/^#?[0-9a-f]{6}$/i.test(v)) cpSetFromHex(v.charAt(0) === "#" ? v : "#" + v, true);
 };
-colorSlider.onchange = () => {
-  push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "color", sender: role, time: Date.now() });
+colorPreviewDot.style.cursor = "pointer";
+colorPreviewDot.onclick = openColorPicker;
+document.getElementById("colorPickerBtn").onclick = openColorPicker;
+document.getElementById("cpCancel").onclick = () => closeColorPicker(true);
+colorPickerModal.onclick = (e) => {
+  if (e.target === colorPickerModal) closeColorPicker(true);
+};
+document.getElementById("cpApply").onclick = () => {
+  const hex = cpCurrent;
+  colorSlider.value = hex;
+  colorPreviewDot.style.background = hex;
+  saveRecentColor(hex);
+  closeColorPicker(false);
+  if (hex.toLowerCase() === cpOriginal.toLowerCase()) return;
+  update(ref(db, `rooms/${roomCode}/settings`), { color: hex }).catch(console.error);
+  push(ref(db, `rooms/${roomCode}/messages`), { type: "system", action: "color", sender: role, time: Date.now() }).catch(console.error);
 };
 
 const wallpaperBtn = document.getElementById("wallpaperBtn");
