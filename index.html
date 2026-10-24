@@ -2877,10 +2877,12 @@ callWarnEl.style.zIndex = "1700";
 callWarnEl.innerHTML = `<div class="call-confirm-box"><div class="call-confirm-title" id="callWarnTitle"></div><div class="call-confirm-desc" id="callWarnDesc"></div><div class="call-confirm-actions"><button id="callWarnNo">Cancel</button><button id="callWarnYesBtn">OK</button></div></div>`;
 document.body.appendChild(callWarnEl);
 
-function askCallWarn(title, desc, yesLabel, onYes) {
+function askCallWarn(title, desc, yesLabel, onYes, danger) {
   callWarnEl.querySelector("#callWarnTitle").textContent = title;
   callWarnEl.querySelector("#callWarnDesc").textContent = desc;
   callWarnEl.querySelector("#callWarnYesBtn").textContent = yesLabel;
+  callWarnEl.querySelector("#callWarnYesBtn").style.color = danger ? "#ed4956" : "";
+  callWarnEl.querySelector("#callWarnYesBtn").style.fontWeight = danger ? "700" : "";
   callWarnYes = onYes;
   callWarnEl.classList.add("show");
 }
@@ -3390,11 +3392,11 @@ window.addEventListener("pagehide", () => {
 });
 
 /* CLEAR */
-document.getElementById("clear").onclick = async () => {
-  if (confirm("Clear chat for everyone?")) {
+document.getElementById("clear").onclick = () => {
+  askCallWarn("Clear chat?", "This deletes all messages for everyone. This can't be undone.", "Clear", async () => {
     const messagesRef = ref(db, `rooms/${roomCode}/messages`);
-    await remove(messagesRef);
-  }
+    await remove(messagesRef).catch(console.error);
+  }, true);
 };
 </script>
 </body>
