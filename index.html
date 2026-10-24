@@ -583,34 +583,53 @@ textarea{
   align-items:center;
   justify-content:center;
   z-index:2000;
+    padding:16px;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
 }
 .settings-popup{
-  width:260px;
+  width:100%;
+  max-width:360px;
+  max-height:88dvh;
+  overflow-y:auto;
   background:var(--sheet);
-  border-radius:22px;
-  padding:20px;
-  box-shadow:0 12px 40px rgba(0,0,0,.5);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:22px 18px 18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
   animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15);
 }
 @keyframes popupIn{from{transform:scale(0.92);opacity:0}to{transform:scale(1);opacity:1}}
 .popup-title{
-  font-size:16px;
+  font-size:20px;
   font-weight:700;
-  letter-spacing:-0.2px;
-  margin-bottom:16px;
-  text-align:center;
+  letter-spacing:-0.3px;
+  margin:0 4px 14px;
+  text-align:left;
+}
+.popup-section{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.45;
+  margin:16px 6px 8px;
 }
 .popup-row{
   display:flex;
   align-items:center;
   gap:10px;
-  margin-bottom:12px;
+  margin-bottom:8px;
+  padding:10px 12px;
+  background:var(--panel);
+  border-radius:14px;
 }
 .popup-row-label{
   font-size:12px;
-  opacity:.55;
-  width:60px;
-  flex-shrink:0;
+    font-weight:600;
+    opacity:.65;
+    width:72px;
+    flex-shrink:0;
 }
 .color-preview-dot{
   width:26px;
@@ -672,10 +691,11 @@ textarea{
 .settings-text-input{
   flex:1;
   width:100%;
-  padding:8px 12px;
-  background:var(--panel);
+  min-width:0;
+  padding:9px 12px;
+  background:var(--bg);
   border:1px solid var(--border);
-  border-radius:8px;
+  border-radius:10px;
   color:var(--text);
   font-size:13px;
   outline:none;
@@ -809,6 +829,7 @@ textarea{
 <div class="settings-popup-overlay" id="settingsModal" style="display:none;">
   <div class="settings-popup">
     <div class="popup-title">Settings</div>
+        <div class="popup-section" style="margin-top:4px;">General</div>
 
         <div class="popup-row">
           <span class="popup-row-label">Storage</span>
@@ -822,8 +843,9 @@ textarea{
           <input type="color" id="colorSlider" value="#3797f0">
         </div>
 
-        <div class="popup-row">
-          <span class="popup-row-label">My Avatar</span>
+        <div class="popup-section">Profile</div>
+                <div class="popup-row">
+                  <span class="popup-row-label">My Avatar</span>
           <input type="file" hidden id="myAvatarInput" accept="image/*">
           <div class="wallpaper-preview" id="myAvatarPreview"></div>
           <button class="wallpaper-choose-btn" id="myAvatarBtn">Choose</button>
@@ -835,8 +857,9 @@ textarea{
           <input type="text" id="myNameInput" class="settings-text-input" placeholder="Name...">
         </div>
 
-        <div class="popup-row">
-              <span class="popup-row-label">Their Name</span>
+        <div class="popup-section">Chat</div>
+                <div class="popup-row">
+                      <span class="popup-row-label">Their Name</span>
               <input type="text" id="partnerNameInput" class="settings-text-input" placeholder="Name...">
             </div>
     
