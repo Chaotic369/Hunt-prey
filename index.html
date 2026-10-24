@@ -2294,7 +2294,17 @@ document.getElementById("contextUnsend").onclick = async () => {
           if (btn.dataset.voiceAttached) return;
           btn.dataset.voiceAttached = "1";
           const i = btn.dataset.i;
-          const audio = document.getElementById("audio-" + i);
+          const domAudio = document.getElementById("audio-" + i);
+                    const bubbleEl = btn.closest(".bubble");
+                    const vid = bubbleEl ? bubbleEl.dataset.id : null;
+                    window.voiceCache = window.voiceCache || {};
+                    let audio = domAudio;
+                    if (domAudio && vid) {
+                      if (!window.voiceCache[vid] || window.voiceCache[vid].src !== domAudio.src) {
+                        window.voiceCache[vid] = new Audio(domAudio.src);
+                      }
+                      audio = window.voiceCache[vid];
+                    }
           const waveform = document.getElementById("waveform-" + i);
           const durationEl = document.getElementById("duration-" + i);
           if (!audio || !waveform) return;
@@ -2333,8 +2343,14 @@ document.getElementById("contextUnsend").onclick = async () => {
             const rect = waveform.getBoundingClientRect();
             const ratio = (e.clientX - rect.left) / rect.width;
             audio.currentTime = ratio * audio.duration;
-            setPlayedRatio(ratio);
-          };
+                        setPlayedRatio(ratio);
+                      };
+
+                      // Re-render keeps the same Audio object, so restore the UI if it is mid-playback
+                      if (!audio.paused && !audio.ended) {
+                        btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+                        audio.ontimeupdate();
+                      }
         });
       }
 
