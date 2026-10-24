@@ -469,18 +469,17 @@ body{
     textarea{
       flex:1;
       background:#000;
-  border:none;
-  border-bottom:1px solid var(--border);
-  outline:none;
-  color:var(--text);
-  padding:9px 2px;
-  border-radius:0;
+        border:1px solid var(--border);
+        outline:none;
+        color:var(--text);
+        padding:10px 16px;
+        border-radius:22px;
   resize:none;
   font-family:inherit;
   font-size:14px;
   transition:border-color .15s ease;
 }
-textarea:focus{border-bottom-color:var(--right)}
+textarea:focus{border-color:var(--right)}
 textarea::placeholder{color:var(--text);opacity:.4}
 .icon{
   width:32px;height:32px;border-radius:50%;
