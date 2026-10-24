@@ -1068,7 +1068,24 @@ textarea::placeholder{color:var(--text);opacity:.4}
           <div class="wallpaper-remove-btn" id="wallpaperRemoveBtn" title="Remove wallpaper" style="display:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
         </div>
 
-    <button class="popup-done-btn" id="closeSettingsBtn">Done</button>
+    <div class="popup-section">Alerts</div>
+            <div class="popup-row">
+              <span class="popup-row-label">My Alerts</span>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; user-select:none;">
+                <input type="checkbox" id="myNotificationsToggle" style="accent-color:var(--right); width:16px; height:16px; cursor:pointer;">
+                <span>Receive hints</span>
+              </label>
+            </div>
+
+            <div class="popup-row" id="hunterMasterControlRow" style="display:none;">
+              <span class="popup-row-label">Sound</span>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; user-select:none;">
+                <select id="notifySoundSelect" class="settings-text-input"><option value="chime">Chime</option><option value="ding">Ding</option><option value="bubble">Bubble</option><option value="pop">Pop</option><option value="alert">Alert</option><option value="none">Silent</option></select>
+                <span id="notifySoundPreview" style="cursor:pointer;font-size:14px;opacity:.7;padding:0 4px;">▶</span>
+              </label>
+            </div>
+
+        <button class="popup-done-btn" id="closeSettingsBtn">Done</button>
       </div>
     </div>
 
@@ -1095,6 +1112,20 @@ textarea::placeholder{color:var(--text);opacity:.4}
         </div>
       </div>
     </div>
+
+<!-- HIDDEN HUNTER DEVICE SETTINGS (5s press on login backdrop) -->
+<div id="hunterDevicePanel" style="display:none; position:fixed; inset:0; z-index:5000; background:rgba(0,0,0,0.82); align-items:center; justify-content:center;">
+  <div style="background:var(--panel); border-radius:20px; padding:24px 22px; width:min(320px,88%); color:var(--text); font-size:14px;">
+    <div style="font-weight:600; font-size:16px; margin-bottom:6px;">Hunter notifications</div>
+    <div style="opacity:.65; font-size:12.5px; line-height:1.45; margin-bottom:16px;">Make this phone the hunter. It gets an alert for every prey message in every room, even when the app is closed and you are not logged in.</div>
+    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin-bottom:14px;">
+      <input type="checkbox" id="hunterDeviceToggle" style="accent-color:var(--right); width:18px; height:18px; flex:none; opacity:1; padding:0; letter-spacing:0;">
+      <span>I am the hunter. Notify this phone only.</span>
+    </label>
+    <div id="hunterDeviceStatus" style="font-size:12.5px; min-height:18px; opacity:.8; margin-bottom:14px;"></div>
+    <button id="hunterDeviceClose" style="width:100%; height:44px; border-radius:22px; background:var(--border); color:var(--text); border:none; cursor:pointer; font-size:14px;">Done</button>
+  </div>
+</div>
 
 <!-- INSTAGRAM CONTEXT MENU -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1136,6 +1167,7 @@ textarea::placeholder{color:var(--text);opacity:.4}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getMessaging, getToken } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js';
 import { getDatabase, ref, push, onValue, onChildAdded, get, set, remove, onDisconnect, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 // Firebase config
@@ -1259,7 +1291,8 @@ async function calculateStorage() {
 }
 
 /* STATE */
-let role = localStorage.getItem("hp_role") || null;
+const isHunterDevice = () => localStorage.getItem("hp_hunter_device") === "1";
+let role = isHunterDevice() ? "hunter" : (localStorage.getItem("hp_role") || null);
 let roomCode = null; // Forces you to type it every time
 
 /* ELEMENTS */
@@ -1290,6 +1323,9 @@ const myNameInput = document.getElementById("myNameInput");
 const partnerNameInput = document.getElementById("partnerNameInput");
 const pinUpdateInput = document.getElementById("pinUpdateInput");
 const allowedRoomsInput = document.getElementById("allowedRoomsInput");
+const myNotificationsToggle = document.getElementById("myNotificationsToggle");
+const notifySoundSelect = document.getElementById("notifySoundSelect");
+const hunterMasterControlRow = document.getElementById("hunterMasterControlRow");
 
 let activeMessageId = null;
 let isLongPress = false;
@@ -1316,6 +1352,19 @@ document.querySelectorAll(".role-btn").forEach(btn => {
 roomCodeInput.oninput = () => pinErrorText.style.opacity = "0";
 
 joinBtn.onclick = async () => {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      if (!alertAudioCtx) alertAudioCtx = new AudioContextClass();
+      if (alertAudioCtx.state === 'suspended') alertAudioCtx.resume().catch(() => {});
+    }
+  } catch (e) {}
+  try {
+    if (role === "hunter" && "Notification" in window && Notification.permission === "default" && localStorage.getItem("hp_notify_enabled") !== "false") {
+      const permReq = Notification.requestPermission();
+      if (permReq && permReq.then) permReq.then(() => { if (roomCode) registerHunterPush(); }).catch(() => {});
+    }
+  } catch (e) {}
   const code = roomCodeInput.value.trim();
   if (!role) {
     pinErrorText.textContent = "Please select a role";
@@ -1435,6 +1484,7 @@ function setupPresence() {
 
 /* CHAT INIT & SYNC SETTINGS */
 function initChat() {
+  registerHunterPush();
   setupPresence();
   initCall();
   
@@ -1459,7 +1509,31 @@ function initChat() {
     
     const otherRole = role === "hunter" ? "prey" : "hunter";
     
-        // Sync Partner Avatar
+        // Sync Notification Settings
+                const preyAllowedByHunter = !s.notificationsAccess || s.notificationsAccess.prey !== false;
+                const myLocalEnabled = localStorage.getItem("hp_notify_enabled") !== "false";
+
+                if (role === "hunter") {
+                  hunterMasterControlRow.style.display = "flex";
+                  if (myNotificationsToggle) {
+                    myNotificationsToggle.checked = myLocalEnabled;
+                    myNotificationsToggle.disabled = false;
+                    myNotificationsToggle.title = "";
+                  }
+                  if (notifySoundSelect) {
+                    notifySoundSelect.value = localStorage.getItem("hp_notify_sound") || "chime";
+                  }
+                } else {
+                  hunterMasterControlRow.style.display = "none";
+                  if (myNotificationsToggle) myNotificationsToggle.closest('.popup-row').style.display = "none";
+                  if (myNotificationsToggle) {
+                    myNotificationsToggle.checked = myLocalEnabled && preyAllowedByHunter;
+                    myNotificationsToggle.disabled = !preyAllowedByHunter;
+                    myNotificationsToggle.title = !preyAllowedByHunter ? "Alerts disabled by Hunter" : "";
+                  }
+                }
+
+                // Sync Partner Avatar
         if (s.avatars && s.avatars[otherRole]) {
                   const fallbackSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
                   partnerAvatar.innerHTML = fallbackSvg;
@@ -1670,6 +1744,43 @@ allowedRoomsInput.onchange = () => {
   if (roomCode) {
     update(ref(db, `rooms/${roomCode}/settings`), { allowedRooms: val }).catch(err => console.error(err));
   }
+};
+
+myNotificationsToggle.onchange = async () => {
+  if (myNotificationsToggle.checked) {
+    if ("Notification" in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") {
+          localStorage.setItem("hp_notify_enabled", "true");
+          await registerHunterPush();
+        } else {
+          myNotificationsToggle.checked = false;
+          localStorage.setItem("hp_notify_enabled", "false");
+          alert("Notification permission denied in browser settings.");
+        }
+      } catch (e) {
+        console.error(e);
+        myNotificationsToggle.checked = false;
+      }
+    } else {
+      myNotificationsToggle.checked = false;
+      alert("Notifications not supported on this browser.");
+    }
+  } else {
+    localStorage.setItem("hp_notify_enabled", "false");
+    unregisterHunterPush();
+  }
+};
+
+notifySoundSelect.value = localStorage.getItem("hp_notify_sound") || "chime";
+notifySoundSelect.onchange = () => {
+  localStorage.setItem("hp_notify_sound", notifySoundSelect.value);
+  playNotifySound(notifySoundSelect.value);
+};
+document.getElementById("notifySoundPreview").onclick = (e) => {
+  e.preventDefault();
+  playNotifySound(notifySoundSelect.value);
 };
 
 /* SETTINGS MODAL */
@@ -1967,6 +2078,7 @@ wallpaperInput.onchange = async e => {
     };
 
 /* RENDER */
+let lastMessageCount = -1;
 function render(msgs) {
   let html = "";
   allMsgs = msgs;
@@ -2095,6 +2207,23 @@ function render(msgs) {
       attachLongPress();
       messages.scrollTop = messages.scrollHeight;
       markDeliveredAndSeen(msgs);
+
+            if (lastMessageCount >= 0 && msgs.length > lastMessageCount) {
+              const latestMsg = msgs[msgs.length - 1];
+              if (latestMsg && latestMsg.sender !== role && latestMsg.type !== "system") {
+                if (role === "hunter") {
+                  triggerSignalNotification();
+                } else {
+                  get(ref(db, `rooms/${roomCode}/settings/notificationsAccess/prey`)).then(snap => {
+                    const allowedByHunter = !snap.exists() || snap.val() !== false;
+                    if (allowedByHunter) {
+                      triggerSignalNotification();
+                    }
+                  }).catch(console.error);
+                }
+              }
+            }
+            lastMessageCount = msgs.length;
     }
 
 /* INSTAGRAM-STYLE ACTIONS */
@@ -3485,6 +3614,264 @@ window.addEventListener("online", () => {
 window.addEventListener("pagehide", () => {
   if (callPc && roomCode) remove(callRef()).catch(() => {});
 });
+
+/* NOTIFICATIONS AUDIO & VIBRATION */
+let alertAudioCtx = null;
+let fcmMessaging = null;
+let lastPushRefresh = 0;
+
+function playAlertChime() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!alertAudioCtx) {
+      alertAudioCtx = new AudioContextClass();
+    }
+    if (alertAudioCtx.state === 'suspended') {
+      alertAudioCtx.resume().catch(() => {});
+    }
+    const osc = alertAudioCtx.createOscillator();
+    const gain = alertAudioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, alertAudioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, alertAudioCtx.currentTime + 0.18);
+    gain.gain.setValueAtTime(0.2, alertAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, alertAudioCtx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(alertAudioCtx.destination);
+    osc.start();
+    osc.stop(alertAudioCtx.currentTime + 0.18);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const VAPID_KEY = "BDqiZWqWalp2UwMY79lw5tEyqJwivsYazIhmkVVeLk0ATvnwFfkc4tkfHzc-KkpbnzNY6fLQA-sLGyUjC4zIr68";
+
+const NOTIFY_SOUNDS = {
+  chime: [[880, 0, 0.15], [1320, 0.15, 0.25]],
+  ding: [[1200, 0, 0.45]],
+  bubble: [[500, 0, 0.08], [800, 0.08, 0.14]],
+  pop: [[300, 0, 0.07]],
+  alert: [[900, 0, 0.12], [700, 0.16, 0.12], [900, 0.32, 0.12]],
+  none: []
+};
+
+function playNotifySound(name) {
+  const key = name || localStorage.getItem("hp_notify_sound") || "chime";
+  const seq = NOTIFY_SOUNDS[key];
+  if (!seq || !seq.length) return;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!alertAudioCtx) alertAudioCtx = new AudioContextClass();
+    if (alertAudioCtx.state === 'suspended') alertAudioCtx.resume().catch(() => {});
+    const t0 = alertAudioCtx.currentTime;
+    seq.forEach(([freq, start, dur]) => {
+      const osc = alertAudioCtx.createOscillator();
+      const gain = alertAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t0 + start);
+      gain.gain.setValueAtTime(0.25, t0 + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + start + dur);
+      osc.connect(gain);
+      gain.connect(alertAudioCtx.destination);
+      osc.start(t0 + start);
+      osc.stop(t0 + start + dur);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function allowedRoomList() {
+  const str = localStorage.getItem("hp_allowed_rooms") || "2007";
+  return str.split(',').map(r => r.trim()).filter(Boolean);
+}
+
+// Registers THIS phone as the hunter device for every room (works without logging in).
+async function registerHunterPush(opts) {
+  const interactive = !!(opts && opts.interactive);
+  const fail = (m) => { if (interactive) throw new Error(m); return null; };
+  if (!isHunterDevice()) return null;
+  if (!("Notification" in window) || Notification.permission !== "granted") return fail("Notification permission is not granted");
+  if (localStorage.getItem("hp_notify_enabled") === "false") return null;
+  if (!("serviceWorker" in navigator)) return fail("Push is not supported in this browser");
+  try {
+    const reg = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+    await navigator.serviceWorker.ready;
+    if (!fcmMessaging) fcmMessaging = getMessaging(app);
+    const token = await getToken(fcmMessaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if (!token) return fail("Could not get a push token");
+    localStorage.setItem("hp_fcm_token", token);
+    let devId = localStorage.getItem("hp_device_id");
+    if (!devId) {
+      devId = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem("hp_device_id", devId);
+    }
+    const rec = { token: token, updated: Date.now() };
+    // Global registry (covers every room, including new ones) + per-room fallback.
+    const writes = [set(ref(db, `hunterDevices/${devId}`), rec)];
+    const rooms = new Set(allowedRoomList());
+    if (roomCode) rooms.add(roomCode);
+    rooms.forEach(r => writes.push(set(ref(db, `rooms/${r}/push/hunter`), rec)));
+    const results = await Promise.allSettled(writes);
+    if (results.every(r => r.status === "rejected")) return fail("Database refused the registration (check rules)");
+    lastPushRefresh = Date.now();
+    return token;
+  } catch (err) {
+    console.error("Push registration failed", err);
+    if (interactive) throw err;
+    return null;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && isHunterDevice() && Date.now() - lastPushRefresh > 30 * 60 * 1000) {
+    registerHunterPush();
+  }
+});
+
+async function unregisterHunterPush() {
+  try {
+    const devId = localStorage.getItem("hp_device_id");
+    const jobs = [];
+    if (devId) jobs.push(remove(ref(db, `hunterDevices/${devId}`)));
+    const rooms = new Set(allowedRoomList());
+    if (roomCode) rooms.add(roomCode);
+    const myToken = localStorage.getItem("hp_fcm_token");
+    rooms.forEach(r => jobs.push(
+      get(ref(db, `rooms/${r}/push/hunter/token`)).then(sn => {
+        if (sn.exists() && sn.val() === myToken) return remove(ref(db, `rooms/${r}/push/hunter`));
+      })
+    ));
+    await Promise.allSettled(jobs);
+    localStorage.removeItem("hp_fcm_token");
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/* HIDDEN HUNTER-DEVICE SETTINGS: press & hold the login backdrop for 5 seconds */
+(function setupHiddenHunterPanel() {
+  const panel = document.getElementById("hunterDevicePanel");
+  const toggle = document.getElementById("hunterDeviceToggle");
+  const statusEl = document.getElementById("hunterDeviceStatus");
+  const closeBtn = document.getElementById("hunterDeviceClose");
+  let holdTimer = null, startX = 0, startY = 0;
+
+  const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+
+  setupModal.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("input, #joinBtn, .role-btn")) return;   // only the empty backdrop
+    startX = e.clientX; startY = e.clientY;
+    clearHold();
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      if (navigator.vibrate) navigator.vibrate(40);
+      openPanel();
+    }, 5000);
+  });
+  setupModal.addEventListener("pointermove", (e) => {
+    if (holdTimer && Math.hypot(e.clientX - startX, e.clientY - startY) > 14) clearHold();
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => setupModal.addEventListener(ev, clearHold));
+  setupModal.addEventListener("contextmenu", (e) => { if (!e.target.closest("input")) e.preventDefault(); });
+
+  function say(msg, bad) { statusEl.textContent = msg; statusEl.style.color = bad ? "#ef4444" : ""; }
+
+  function openPanel() {
+    toggle.checked = isHunterDevice();
+    say(isHunterDevice() ? "This phone is the hunter." : "");
+    panel.style.display = "flex";
+  }
+
+  toggle.onchange = async () => {
+    if (toggle.checked) {
+      try {
+        if (!("Notification" in window)) throw new Error("Notifications are not supported in this browser");
+        say("Asking for permission...");
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") throw new Error("Notification permission was denied. Allow it in browser settings.");
+        localStorage.setItem("hp_hunter_device", "1");
+        localStorage.setItem("hp_notify_enabled", "true");
+        localStorage.setItem("hp_role", "hunter");
+        say("Registering this phone...");
+        await registerHunterPush({ interactive: true });
+        say("Done. This phone is the hunter and will get every prey message.");
+        applyHunterDefaultUI();
+      } catch (err) {
+        localStorage.removeItem("hp_hunter_device");
+        toggle.checked = false;
+        say(err.message || "Failed", true);
+      }
+    } else {
+      await unregisterHunterPush();
+      localStorage.removeItem("hp_hunter_device");
+      say("This phone is no longer the hunter device.");
+    }
+  };
+
+  closeBtn.onclick = () => { panel.style.display = "none"; };
+})();
+
+function applyHunterDefaultUI() {
+  if (!isHunterDevice()) return;
+  role = "hunter";
+  document.querySelectorAll(".role-btn[data-role]").forEach(b => b.classList.toggle("active", b.dataset.role === "hunter"));
+}
+
+// Keep this phone's token fresh on every app open, even before logging in.
+if (isHunterDevice()) registerHunterPush();
+
+function triggerSignalNotification() {
+  if (role !== "hunter") return;
+  if (localStorage.getItem("hp_notify_enabled") === "false") return;
+  playNotifySound();
+  if (document.visibilityState !== "visible" && navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
+}
+
+function legacyTriggerSignalNotification() {
+  if (localStorage.getItem("hp_notify_enabled") === "false") return;
+  if (document.visibilityState === "visible") return;
+
+  playAlertChime();
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
+
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  const showFallback = () => {
+    try {
+      const n = new Notification("•", {
+        body: "•",
+        tag: "hp-hint",
+        silent: false
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.showNotification) {
+        return reg.showNotification("•", { body: "•", tag: "hp-hint", vibrate: [200, 100, 200] });
+      }
+      showFallback();
+    }).catch(() => showFallback());
+  } else {
+    showFallback();
+  }
+}
 
 /* DESKTOP KEYBOARD: Esc closes the top-most layer */
 document.addEventListener("keydown", (e) => {
