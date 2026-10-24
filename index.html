@@ -592,8 +592,8 @@ textarea{
 .settings-popup-overlay{
   position:fixed;
   inset:0;
-  background:var(--overlay);
-  display:flex;
+  background:var(--bg);
+    display:flex;
   align-items:center;
   justify-content:center;
   z-index:2000;
@@ -606,11 +606,11 @@ textarea{
   max-width:360px;
   max-height:88dvh;
   overflow-y:auto;
-  background:var(--sheet);
-  border:1px solid var(--border);
-  border-radius:24px;
-  padding:22px 18px 18px;
-  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  background:transparent;
+    border:none;
+    border-radius:0;
+    padding:22px 18px 18px;
+    box-shadow:none;
   animation:popupIn 0.18s cubic-bezier(0.18,0.89,0.32,1.15);
 }
 @keyframes popupIn{from{transform:scale(0.92);opacity:0}to{transform:scale(1);opacity:1}}
@@ -633,11 +633,12 @@ textarea{
   display:flex;
   align-items:center;
   gap:10px;
-  margin-bottom:8px;
-  padding:10px 12px;
-  background:var(--panel);
-  border-radius:14px;
-}
+  margin-bottom:0;
+    padding:12px 4px;
+    background:transparent;
+    border-bottom:1px solid var(--border);
+    border-radius:0;
+  }
 .popup-row-label{
   font-size:12px;
     font-weight:600;
@@ -679,21 +680,22 @@ textarea{
 }
 .wallpaper-choose-btn{
   flex:1;
-  padding:8px 12px;
-  background:var(--panel);
-  color:var(--text);
-  border:1px solid var(--border);
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-  font-weight:600;
-}
-.wallpaper-choose-btn:active{background:var(--border);}
+  padding:8px 4px;
+    background:transparent;
+    color:var(--right);
+    border:none;
+    border-radius:0;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    text-align:right;
+  }
+  .wallpaper-choose-btn:active{opacity:.6;}
 .wallpaper-remove-btn{
   width:26px;height:26px;
   border-radius:50%;
-  background:var(--panel);
-  display:flex;
+    background:transparent;
+    display:flex;
   align-items:center;
   justify-content:center;
   cursor:pointer;
@@ -706,10 +708,10 @@ textarea{
   flex:1;
   width:100%;
   min-width:0;
-  padding:9px 12px;
-  background:var(--bg);
-  border:1px solid var(--border);
-  border-radius:10px;
+  padding:6px 0;
+    background:transparent;
+    border:none;
+    border-radius:0;
   color:var(--text);
   font-size:13px;
   outline:none;
@@ -718,10 +720,10 @@ textarea{
 .popup-done-btn{
   width:100%;
   padding:10px;
-  background:var(--right);
-  color:#fff;
-  border:none;
-  border-radius:10px;
+  background:transparent;
+    color:var(--right);
+    border:none;
+    border-radius:0;
   cursor:pointer;
   font-size:13px;
   font-weight:700;
@@ -862,7 +864,7 @@ textarea{
         <div class="popup-row">
           <span class="popup-row-label">Storage</span>
           <div id="storageUsageText" style="flex:1; font-size:13px; color:var(--text); opacity:0.8; font-family:monospace;">Calculating...</div>
-          <button class="action-mini-btn" id="refreshStorageBtn" style="background:var(--border); color:var(--text); border:none; border-radius:8px; cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center;" title="Refresh Storage"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
+          <button class="action-mini-btn" id="refreshStorageBtn" style="background:transparent; color:var(--text); border:none; border-radius:8px; cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center;" title="Refresh Storage"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
         </div>
 
         <div class="popup-row">
