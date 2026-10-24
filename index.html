@@ -2717,6 +2717,24 @@ const callIncomingLabel = document.getElementById("callIncomingLabel");
 
 function callRef(p) { return ref(db, `rooms/${roomCode}/call${p ? "/" + p : ""}`); }
 
+/* Use the app's current wallpaper as the call backdrop, with a dark scrim for readability */
+function applyCallBackdrop() {
+  const appEl = document.querySelector('.app');
+  let bg = appEl ? getComputedStyle(appEl).backgroundImage : "none";
+  if (!bg || bg === "none") bg = getComputedStyle(document.body).backgroundImage;
+  if (bg && bg !== "none") {
+    callOverlay.style.backgroundImage = `linear-gradient(rgba(0,0,0,.4), rgba(0,0,0,.55)), ${bg}`;
+    callOverlay.style.backgroundSize = "cover";
+    callOverlay.style.backgroundPosition = "center";
+    callOverlay.style.backgroundRepeat = "no-repeat";
+  } else {
+    callOverlay.style.backgroundImage = "";
+    callOverlay.style.backgroundSize = "";
+    callOverlay.style.backgroundPosition = "";
+    callOverlay.style.backgroundRepeat = "";
+  }
+}
+
 function updateCallMode() {
   const voice = !callLocalVideoOn && !callRemoteVideoLive;
   callOverlay.classList.toggle("voice-only", voice);
@@ -2756,6 +2774,7 @@ function syncCallCamUI() {
 
 function setCallUI(txt, incoming) {
   callStatus.textContent = txt;
+  applyCallBackdrop();
   callAccept.style.display = incoming ? "" : "none";
     callOverlay.classList.toggle("incoming", !!incoming);
     callEnd.textContent = incoming ? "Decline" : "End";
