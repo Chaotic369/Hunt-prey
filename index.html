@@ -1788,33 +1788,35 @@ cuteAvatarOverlay.querySelector("#cuteAvatarOwn").onclick = () => {
 };
 
 /* CUTE WALLPAPERS + THEMES */
-const wpHeart = (x, y, s, f, o) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 -3C-6 -10 -14 -2 0 8C14 -2 6 -10 0 -3Z" fill="${f}" opacity="${o}"/>`;
-const wpStar = (x, y, s, f, o) => `<polygon transform="translate(${x} ${y}) scale(${s})" points="0,-8 2.4,-2.5 8,-2.5 3.6,1.2 5,7 0,3.6 -5,7 -3.6,1.2 -8,-2.5 -2.4,-2.5" fill="${f}" opacity="${o}"/>`;
+const wpCloud = (x, y, s) => `<g fill="#fff" opacity=".75" transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="50" ry="20"/><ellipse cx="-28" cy="-14" rx="26" ry="18"/><ellipse cx="18" cy="-20" rx="32" ry="22"/></g>`;
 const wpDot = (x, y, r, f, o) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" opacity="${o}"/>`;
-const wpCloud = (x, y) => `<g fill="#fff" opacity=".7" transform="translate(${x} ${y})"><ellipse cx="0" cy="0" rx="10" ry="5"/><ellipse cx="-5" cy="-4" rx="5" ry="4"/><ellipse cx="4" cy="-5" rx="6" ry="5"/></g>`;
-const wpPaw = (x, y, s, f, o) => `<g transform="translate(${x} ${y}) scale(${s})" fill="${f}" opacity="${o}"><ellipse cx="0" cy="4" rx="6" ry="5"/><circle cx="-7" cy="-4" r="2.6"/><circle cx="-2.5" cy="-8" r="2.6"/><circle cx="2.5" cy="-8" r="2.6"/><circle cx="7" cy="-4" r="2.6"/></g>`;
-const wpDaisy = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">` + [0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="0" cy="-6" rx="3" ry="5" fill="#fff" opacity=".85" transform="rotate(${a})"/>`).join("") + `<circle r="3" fill="#ffb300"/></g>`;
 
 const CUTE_WALLPAPERS = [
-  { name: "Sakura", c1: "#ffe3ee", c2: "#ffc2d9", accent: "#ec6fa0", tile: wpHeart(20, 20, 1.3, "#fff", .6) + wpHeart(60, 60, 1, "#ff8fb8", .5) },
-  { name: "Cotton Candy", c1: "#c9e8ff", c2: "#f3c9ff", accent: "#a47cf0", tile: wpCloud(22, 24) + wpCloud(60, 62) },
-  { name: "Mint", c1: "#d9f7e8", c2: "#bfeedd", accent: "#3fbf94", tile: wpDot(20, 20, 4, "#fff", .7) + wpDot(60, 60, 3, "#7fd9b5", .6) + wpDot(62, 18, 2, "#fff", .7) },
-  { name: "Peachy", c1: "#ffe5cf", c2: "#ffc9a8", accent: "#f08a4b", tile: wpStar(20, 20, 1.2, "#fff", .7) + wpStar(60, 58, .9, "#ff9d5c", .5) },
-  { name: "Paw Prints", c1: "#fff3d6", c2: "#ffe2a8", accent: "#c98a4b", tile: wpPaw(22, 22, 1, "#b9722f", .35) + wpPaw(60, 60, 1, "#b9722f", .25) },
-  { name: "Starry Night", c1: "#2a2f6b", c2: "#6a4aa8", accent: "#9b8cff", tile: wpStar(15, 20, .5, "#fff", .9) + wpStar(55, 35, .8, "#fff", .8) + wpStar(30, 65, .6, "#ffe9a8", .9) + wpStar(70, 70, .4, "#fff", .7) },
-  { name: "Lavender", c1: "#efe3ff", c2: "#d6c2ff", accent: "#8f6cf0", tile: wpHeart(20, 20, 1.2, "#fff", .6) + wpHeart(58, 56, .9, "#b79cff", .5) },
-  { name: "Daisy", c1: "#fff9c4", c2: "#ffeb7a", accent: "#f2b705", tile: wpDaisy(22, 22, 1) + wpDaisy(60, 60, .8) },
-    { name: "Blush", c1: "#ffeef2", c2: "#ffd6e2", accent: "#ec6fa0", tile: "" },
-    { name: "Sky", c1: "#e6f3ff", c2: "#bfe0ff", accent: "#3797f0", tile: "" },
-    { name: "Sage", c1: "#eaf4ec", c2: "#c9e0cf", accent: "#3fa06f", tile: "" },
-    { name: "Cream", c1: "#fff8ee", c2: "#f3e2c7", accent: "#d38b3f", tile: "" },
-    { name: "Dusk", c1: "#3b3560", c2: "#1d1a38", accent: "#9b8cff", tile: "" },
-    { name: "Midnight", c1: "#1f2638", c2: "#0c1019", accent: "#4da3ff", tile: "" },
-    { name: "Soft Dots", c1: "#f6f0ff", c2: "#e6dbff", accent: "#8f6cf0", tile: wpDot(40, 40, 1.6, "#fff", .8) }
+  { name: "Sunset Glow", accent: "#ff5e7e", stops: ["#2b1055", "#7b2d8e", "#ff5e7e", "#ffb36b"],
+    scene: `<circle cx="200" cy="560" r="80" fill="#ffd9a0" opacity=".9"/><path d="M0 640 Q100 600 200 640 T400 630 V800 H0Z" fill="#3a1450" opacity=".85"/><path d="M0 700 Q120 670 240 705 T400 695 V800 H0Z" fill="#240a38"/>` },
+  { name: "Peach Sunrise", accent: "#ff9a6b", stops: ["#8fb8ff", "#ffd1dc", "#ffe3a3"],
+    scene: `<circle cx="200" cy="600" r="90" fill="#fff4cf" opacity=".95"/><path d="M0 650 Q150 610 300 650 T400 640 V800 H0Z" fill="#ffc2b0" opacity=".8"/><path d="M0 720 Q150 690 300 725 T400 715 V800 H0Z" fill="#ff9d8a" opacity=".9"/>` },
+  { name: "Ocean Sunset", accent: "#ff7e5f", stops: ["#ff6a88", "#ff9a6b", "#ffd08a"],
+    scene: `<circle cx="200" cy="520" r="70" fill="#fff0b8"/><rect y="540" width="400" height="260" fill="#1d3a6b"/><rect x="160" y="552" width="80" height="6" rx="3" fill="#ffd9a0" opacity=".85"/><rect x="170" y="574" width="60" height="5" rx="2.5" fill="#ffd9a0" opacity=".7"/><rect x="182" y="594" width="36" height="4" rx="2" fill="#ffd9a0" opacity=".55"/><rect x="190" y="612" width="20" height="3" rx="1.5" fill="#ffd9a0" opacity=".4"/>` },
+  { name: "Calm Ocean", accent: "#1fa8d4", stops: ["#d8f4ff", "#9fe0f5", "#5cc8e8"],
+    scene: `<path d="M0 560 Q100 540 200 560 T400 560 V800 H0Z" fill="#6fd3ee" opacity=".7"/><path d="M0 620 Q100 600 200 620 T400 620 V800 H0Z" fill="#2fb4dd" opacity=".8"/><path d="M0 690 Q100 670 200 690 T400 690 V800 H0Z" fill="#1788b8"/>` },
+  { name: "Deep Sea", accent: "#2bb6c9", stops: ["#0e5a7a", "#0b3d5c", "#06182b"],
+    scene: `<polygon points="120,0 180,0 300,800 60,800" fill="#fff" opacity=".05"/>` + wpDot(90, 600, 10, "#9fe9ff", .25) + wpDot(130, 500, 6, "#9fe9ff", .25) + wpDot(300, 650, 14, "#9fe9ff", .2) + wpDot(330, 540, 7, "#9fe9ff", .25) + wpDot(240, 720, 5, "#9fe9ff", .3) },
+  { name: "Pink Clouds", accent: "#c06bd8", stops: ["#ffd6f0", "#d9c4ff", "#a9d6ff"],
+    scene: wpCloud(110, 200, 1.4) + wpCloud(300, 360, 1.1) + wpCloud(150, 560, 1.6) + wpCloud(320, 700, 1.2) },
+  { name: "Night Sky", accent: "#9b8cff", stops: ["#0b1030", "#2a2f6b", "#6a4aa8"],
+    scene: `<path d="M290 128 A42 42 0 1 0 332 170 A34 34 0 1 1 290 128Z" fill="#fff6d6"/>` + wpDot(80, 120, 2, "#fff", .9) + wpDot(160, 240, 1.5, "#fff", .8) + wpDot(340, 330, 2, "#fff", .8) + wpDot(60, 400, 1.5, "#fff", .7) + wpDot(220, 470, 2, "#ffe9a8", .9) + wpDot(130, 620, 1.5, "#fff", .7) },
+  { name: "Aurora", accent: "#3ddc97", stops: ["#04122b", "#0b5d63", "#6a3fa0"],
+    scene: `<path d="M0 300 Q100 200 200 300 T400 280 V420 Q300 360 200 420 T0 400Z" fill="#3ddc97" opacity=".35"/><path d="M0 420 Q100 340 200 430 T400 400 V520 Q300 470 200 520 T0 500Z" fill="#b57bff" opacity=".3"/>` + wpDot(70, 110, 2, "#fff", .9) + wpDot(250, 90, 1.5, "#fff", .8) + wpDot(340, 200, 2, "#fff", .8) + wpDot(130, 640, 1.5, "#fff", .6) },
+  { name: "Lagoon Dusk", accent: "#e0529c", stops: ["#1b2a6b", "#e0529c", "#ffb88c"],
+    scene: `<circle cx="200" cy="600" r="70" fill="#ffd0a0"/><rect y="600" width="400" height="200" fill="#2a1b5e"/><rect x="165" y="614" width="70" height="5" rx="2.5" fill="#ffd0a0" opacity=".8"/><rect x="178" y="636" width="44" height="4" rx="2" fill="#ffd0a0" opacity=".6"/><rect x="188" y="656" width="24" height="3" rx="1.5" fill="#ffd0a0" opacity=".45"/>` },
+  { name: "Mint Sky", accent: "#3fbfa0", stops: ["#d4fff1", "#a8e6ff", "#c7b8ff"],
+    scene: wpCloud(120, 240, 1.3) + wpCloud(290, 440, 1.5) + wpCloud(140, 650, 1.2) }
 ];
 
 function cuteWallpaperUrl(w) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="800" viewBox="0 0 400 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${w.c1}"/><stop offset="1" stop-color="${w.c2}"/></linearGradient><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse">${w.tile}</pattern></defs><rect width="400" height="800" fill="url(#g)"/><rect width="400" height="800" fill="url(#p)"/></svg>`;
+  const stops = w.stops.map((c, i) => `<stop offset="${i / (w.stops.length - 1)}" stop-color="${c}"/>`).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="800" viewBox="0 0 400 800"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient></defs><rect width="400" height="800" fill="url(#g)"/>${w.scene}</svg>`;
   return "data:image/svg+xml;base64," + btoa(svg);
 }
 
